@@ -48,9 +48,10 @@
     "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-sm: calc(var(--radius) - 6px); /* ≈ 12px */
+  --radius-sm: calc(var(--radius) - 4px); /* ≈ 14px — aligné DS apple */
   --radius-md: calc(var(--radius) - 2px); /* ≈ 16px */
   --radius-lg: var(--radius); /* 18px */
+  --radius-xl: calc(var(--radius) + 4px); /* ≈ 22px — DS apple */
 }
 
 @theme inline {
@@ -76,6 +77,7 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
 }
 
 body {
