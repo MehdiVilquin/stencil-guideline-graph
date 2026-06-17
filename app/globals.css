@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/* ── Design system: Apple (better-design) ──────────────────────────────────
+   Neutral light canvas · SF Pro (system) · blue primary · pill buttons.
+   Tokens are the better-design `apple` system verbatim; JetBrains Mono is kept
+   for metadata/evidence lines (per the Figma), plus a few proof/surface tokens. */
+:root {
+  --background: oklch(0.9751 0.0022 286.36);
+  --foreground: oklch(0.2344 0.0035 286.13);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2344 0.0035 286.13);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2344 0.0035 286.13);
+  --primary: oklch(0.5604 0.1989 257);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9751 0.0022 286.36);
+  --secondary-foreground: oklch(0.5364 0.0104 286.04);
+  --muted: oklch(0.9512 0.0033 286.34);
+  --muted-foreground: oklch(0.5364 0.0104 286.04);
+  --accent: oklch(0.9349 0.0044 286.31);
+  --accent-foreground: oklch(0.2344 0.0035 286.13);
+  --destructive: oklch(0.6356 0.2082 25.38);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9079 0 0);
+  --input: oklch(1 0 0);
+  --ring: oklch(0.5604 0.1989 257);
+  --radius: 1.125rem;
+
+  /* proof semantics (not in base apple) */
+  --ok: oklch(0.58 0.13 155);
+  --judged: oklch(0.68 0.12 75);
+
+  /* surfaces — neutral grays from the Figma (feed / composer) */
+  --surface-feed: oklch(0.957 0 0); /* ≈ #f0f0f0 */
+  --surface-composer: oklch(0.925 0 0); /* ≈ #e7e7e7 */
+
+  /* kind badges (Créer = green · Corriger/Original = warm) */
+  --badge-create-bg: oklch(0.93 0.05 150);
+  --badge-create-fg: oklch(0.45 0.11 150);
+  --badge-correct-bg: oklch(0.93 0.035 40); /* ≈ #f9e7e1 */
+  --badge-correct-fg: oklch(0.46 0.1 40); /* ≈ #893a20 */
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.06), 0 1px 1px oklch(0 0 0 / 0.04);
+  --shadow-panel: 0 2px 6px oklch(0 0 0 / 0.06);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 6px); /* ≈ 12px */
+  --radius-md: calc(var(--radius) - 2px); /* ≈ 16px */
+  --radius-lg: var(--radius); /* 18px */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-ok: var(--ok);
+  --color-judged: var(--judged);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+select,
+textarea,
+input {
+  font-family: inherit;
+}
+
+::placeholder {
+  color: var(--muted-foreground);
+}
+
+/* Composer textarea: auto-grow with content (graceful fallback for Firefox). */
+.composer-textarea {
+  resize: none;
+}
+@supports (field-sizing: content) {
+  .composer-textarea {
+    field-sizing: content;
+    min-height: 3lh;
+    max-height: 16lh;
+    overflow-y: auto;
+  }
+}
+
+/* 2-line preview clamp (turn cards). */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

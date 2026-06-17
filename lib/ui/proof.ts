@@ -1,0 +1,32 @@
+import type { Verdict } from "@/lib/domain/types";
+
+/** Count provable (verifiable) verdicts, how many pass, and how many are judged. */
+export function proofStats(report: Verdict[]) {
+  const provable = report.filter((v) => v.verifiable);
+  const greens = provable.filter((v) => v.pass).length;
+  const judged = report.length - provable.length;
+  return { provable: provable.length, greens, judged };
+}
+
+export type ProofKind = "conforme" | "alertes";
+
+export interface ProofStatus {
+  kind: ProofKind;
+  proven: number;
+  provable: number;
+  judged: number;
+  violations: number;
+}
+
+/** Compact status for a turn card / score header. */
+export function proofStatus(report: Verdict[]): ProofStatus {
+  const { provable, greens, judged } = proofStats(report);
+  const violations = report.filter((v) => v.verifiable && !v.pass).length;
+  return {
+    kind: violations > 0 ? "alertes" : "conforme",
+    proven: greens,
+    provable,
+    judged,
+    violations,
+  };
+}

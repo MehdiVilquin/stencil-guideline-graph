@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proto — Composer (dock unifié)</title>
+  <style>
+    /* Tokens repris de app/globals.css (design system Apple) */
+    :root {
+      --background: oklch(0.9751 0.0022 286.36);
+      --foreground: oklch(0.2344 0.0035 286.13);
+      --card: oklch(1 0 0);
+      --primary: oklch(0.5604 0.1989 257);
+      --primary-foreground: oklch(1 0 0);
+      --muted: oklch(0.9512 0.0033 286.34);
+      --muted-foreground: oklch(0.5364 0.0104 286.04);
+      --destructive: oklch(0.6356 0.2082 25.38);
+      --border: oklch(0.9079 0 0);
+      --ring: oklch(0.5604 0.1989 257);
+      --ok: oklch(0.58 0.13 155);
+      --surface-feed: oklch(0.957 0 0);
+      --surface-composer: oklch(0.925 0 0);
+      --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.06);
+      --shadow-panel: 0 10px 40px oklch(0 0 0 / 0.08);
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      background: var(--background);
+      color: var(--foreground);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      padding: 24px;
+    }
+
+    .stage { width: 100%; max-width: 560px; }
+    .stage > .caption {
+      font-size: 11px; color: var(--muted-foreground);
+      margin: 0 4px 8px; font-family: var(--font-mono);
+    }
+
+    /* ── Dock unifié : saisie + actions = une surface ── */
+    .dock {
+      background: var(--surface-composer);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: var(--shadow-panel);
+    }
+
+    /* En-tête : segmented control + compteur de règles */
+    .dock__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .segmented { display: inline-flex; gap: 4px; }
+    .seg {
+      min-height: 44px; padding: 0 14px;
+      border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--foreground);
+      font: 500 13px var(--font-sans); cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .seg:hover { background: var(--muted); }
+    .seg[aria-pressed="true"] { background: var(--foreground); color: var(--background); border-color: transparent; }
+
+    .rules {
+      display: inline-flex; align-items: center; gap: 6px;
+      font: 500 11px var(--font-mono); color: var(--muted-foreground);
+    }
+    .rules .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+
+    /* Textarea auto-grow */
+    .composer-textarea {
+      width: 100%; border: 0; outline: none; resize: none;
+      background: transparent; color: var(--foreground);
+      font: 14px/1.45 var(--font-sans);
+      padding: 4px 4px 2px; min-height: 64px;
+    }
+    .composer-textarea::placeholder { color: var(--muted-foreground); }
+    @supports (field-sizing: content) {
+      .composer-textarea { field-sizing: content; min-height: 3lh; max-height: 16lh; overflow-y: auto; }
+    }
+
+    /* Rangée d'actions (même surface) */
+    .dock__actions {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 6px;
+    }
+    .spacer { flex: 1; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 36px; padding: 0 12px;
+      border-radius: 999px; border: 1px solid var(--border);
+      background: var(--card); color: var(--foreground);
+      font: 500 12px var(--font-sans); cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .chip:hover { background: var(--muted); }
+    .chip[aria-expanded="true"] { border-color: var(--primary); background: var(--muted); }
+    .chip:disabled { opacity: .4; cursor: default; }
+    .chip svg { width: 15px; height: 15px; }
+    .chip .ctx-summary { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+
+    /* Bouton primaire rond ➤ / ■ */
+    .send {
+      width: 44px; height: 44px; flex: none;
+      display: grid; place-items: center;
+      border: 0; border-radius: 50%;
+      background: var(--primary); color: var(--primary-foreground);
+      cursor: pointer; box-shadow: var(--shadow-sm);
+      transition: opacity .15s, transform .08s, background .15s;
+    }
+    .send:hover { opacity: .9; }
+    .send:active { transform: scale(.95); }
+    .send:disabled { opacity: .35; cursor: default; }
+    .send svg { width: 20px; height: 20px; }
+    .send.is-busy { background: var(--foreground); }
+
+    /* Focus visible global */
+    .seg:focus-visible, .chip:focus-visible, .send:focus-visible,
+    .ctx select:focus-visible {
+      outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 45%, transparent);
+    }
+
+    .hint {
+      margin: 8px 4px 0; font: 11px var(--font-mono); color: var(--muted-foreground);
+    }
+    kbd {
+      font: 10px var(--font-mono);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 5px; padding: 1px 5px;
+    }
+
+    /* Notice (erreur) */
+    .notice {
+      margin-top: 8px; border-radius: 9px;
+      border: 1px solid color-mix(in oklch, var(--destructive) 25%, transparent);
+      background: color-mix(in oklch, var(--destructive) 8%, transparent);
+      color: var(--destructive); font-size: 11px; padding: 8px 12px;
+    }
+
+    /* ── Popover contexte ── */
+    .ctx-wrap { position: relative; }
+    .ctx {
+      position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 30;
+      width: 320px; padding: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; box-shadow: var(--shadow-panel);
+    }
+    .ctx[hidden] { display: none; }
+    .ctx__title { font: 600 11px var(--font-mono); color: var(--muted-foreground); margin: 0 0 10px; letter-spacing: .04em; text-transform: uppercase; }
+    .ctx__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ctx label { display: block; }
+    .ctx label > span { display: block; font: 500 10px var(--font-mono); color: var(--muted-foreground); margin-bottom: 3px; }
+    .ctx select {
+      width: 100%; min-height: 32px; padding: 0 8px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--foreground);
+      font: 11px var(--font-mono); outline: none;
+    }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <p class="caption">proto_component / composer.html — dock unifié</p>
+
+    <div class="dock">
+      <!-- En-tête : mode + compteur de règles -->
+      <div class="dock__head">
+        <div class="segmented" role="group" aria-label="Mode de génération">
+          <button type="button" class="seg" data-mode="write" aria-pressed="false">Créer</button>
+          <button type="button" class="seg" data-mode="rewrite" aria-pressed="true">Corriger</button>
+        </div>
+        <span class="rules"><span class="dot" aria-hidden="true"></span><span id="rulesCount">12&nbsp;/&nbsp;18 règles actives</span></span>
+      </div>
+
+      <!-- Saisie -->
+      <textarea id="ta" class="composer-textarea" rows="3"
+        placeholder="Coller le texte à corriger"
+        aria-label="Texte à générer ou corriger"></textarea>
+
+      <!-- Rangée d'actions -->
+      <div class="dock__actions">
+        <button type="button" class="chip" id="wand" aria-label="Charger un exemple à corriger">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span id="wandLabel">Exemple</span>
+        </button>
+
+        <div class="ctx-wrap">
+          <button type="button" class="chip" id="ctxBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="ctxPanel">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h8M16 18h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="16" cy="6" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="18" r="2" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span class="ctx-summary" id="ctxSummary">Nike·FR·+4</span>
+          </button>
+
+          <div class="ctx" id="ctxPanel" role="dialog" aria-label="Contexte de génération" hidden>
+            <p class="ctx__title">Contexte</p>
+            <div class="ctx__grid">
+              <label>Brand <span>brand</span>
+                <select data-dim="brand"><option>Nike</option><option>Adidas</option><option>*</option></select>
+              </label>
+              <label>Locale <span>locale</span>
+                <select data-dim="locale"><option>FR</option><option>EN</option><option>DE</option><option>*</option></select>
+              </label>
+              <label>Type <span>contentType</span>
+                <select data-dim="contentType"><option>PDP</option><option>Email</option><option>Ad</option><option>*</option></select>
+              </label>
+              <label>Catégorie <span>productCategory</span>
+                <select data-dim="productCategory"><option>Shoes</option><option>Apparel</option><option>*</option></select>
+              </label>
+              <label>Produit <span>productType</span>
+                <select data-dim="productType"><option>Running</option><option>Lifestyle</option><option>*</option></select>
+              </label>
+              <label>Champ <span>field</span>
+                <select data-dim="field"><option>Title</option><option>Body</option><option>*</option></select>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <span class="spacer"></span>
+
+        <!-- Bouton primaire : ➤ → ■ -->
+        <button type="button" class="send" id="send" aria-label="Lancer la génération">
+          <svg id="sendIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="sr-only" id="sendSr">Lancer la génération</span>
+        </button>
+      </div>
+
+      <div class="notice" id="notice" hidden></div>
+    </div>
+
+    <p class="hint"><kbd>⌘</kbd>+<kbd>↵</kbd> lancer · <kbd>Échap</kbd> arrêter / fermer</p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const ta = $('ta'), send = $('send'), sendIcon = $('sendIcon'), sendSr = $('sendSr'),
+          notice = $('notice'), ctxBtn = $('ctxBtn'), ctxPanel = $('ctxPanel'),
+          ctxSummary = $('ctxSummary'), wand = $('wand'), wandLabel = $('wandLabel');
+
+    let busy = false, ctrl = null;
+    const ICON_SEND = '<path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    const ICON_STOP = '<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>';
+
+    /* Mode segmenté */
+    document.querySelectorAll('.seg').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('.seg').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      ta.placeholder = b.dataset.mode === 'write' ? 'Écrivez un brief ou une description' : 'Coller le texte à corriger';
+    }));
+
+    /* État du bouton primaire (garde un label accessible, jamais juste "…") */
+    function setBusy(v) {
+      busy = v;
+      send.classList.toggle('is-busy', v);
+      send.setAttribute('aria-busy', String(v));
+      send.setAttribute('aria-label', v ? 'Arrêter la génération' : 'Lancer la génération');
+      sendSr.textContent = v ? 'Génération en cours — arrêter' : 'Lancer la génération';
+      sendIcon.innerHTML = v ? ICON_STOP : ICON_SEND;
+      send.disabled = v ? false : ta.value.trim().length === 0;
+    }
+
+    function run() {
+      if (busy || !ta.value.trim()) return;
+      notice.hidden = true;
+      setBusy(true);
+      ctrl = new AbortController();
+      const signal = ctrl.signal;
+      // Simule /api/generate
+      const t = setTimeout(() => { if (!signal.aborted) { setBusy(false); } }, 2500);
+      signal.addEventListener('abort', () => { clearTimeout(t); setBusy(false); });
+    }
+    function stop() { if (busy && ctrl) ctrl.abort(); }
+
+    send.addEventListener('click', () => (busy ? stop() : run()));
+    ta.addEventListener('input', () => { if (!busy) send.disabled = ta.value.trim().length === 0; });
+    setBusy(false);
+
+    /* Clavier : ⌘/Ctrl+Enter lance, Échap arrête */
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); run(); }
+      else if (e.key === 'Escape' && busy) { e.preventDefault(); stop(); }
+    });
+
+    /* Wand */
+    wand.addEventListener('click', () => {
+      wand.disabled = true; wandLabel.textContent = 'Génération…'; wand.setAttribute('aria-busy', 'true');
+      setTimeout(() => {
+        ta.value = "Nos chaussures sont les meilleures et imbattables, achetez maintenant !!!";
+        ta.dispatchEvent(new Event('input'));
+        wand.disabled = false; wandLabel.textContent = 'Exemple'; wand.removeAttribute('aria-busy');
+        ta.focus();
+      }, 700);
+    });
+
+    /* Popover contexte : ouverture, clic extérieur, Échap, retour focus */
+    function openCtx(open) {
+      ctxPanel.hidden = !open;
+      ctxBtn.setAttribute('aria-expanded', String(open));
+      if (open) ctxPanel.querySelector('select').focus();
+      else ctxBtn.focus();
+    }
+    ctxBtn.addEventListener('click', () => openCtx(ctxPanel.hidden));
+    document.addEventListener('mousedown', (e) => {
+      if (!ctxPanel.hidden && !ctxPanel.contains(e.target) && !ctxBtn.contains(e.target)) openCtx(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !ctxPanel.hidden) { e.preventDefault(); openCtx(false); }
+    });
+
+    /* Résumé de contexte dynamique : 1re dim non-wildcard + +N */
+    function refreshSummary() {
+      const sels = [...ctxPanel.querySelectorAll('select')];
+      const set = sels.filter((s) => s.value !== '*');
+      ctxSummary.textContent = set.length === 0 ? 'Tout contexte'
+        : set.length === 1 ? set[0].value
+        : `${set[0].value}·${set[1].value}` + (set.length > 2 ? `·+${set.length - 2}` : '');
+    }
+    ctxPanel.querySelectorAll('select').forEach((s) => s.addEventListener('change', refreshSummary));
+    refreshSummary();
+  </script>
+</body>
+</html>
