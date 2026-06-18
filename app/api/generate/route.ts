@@ -8,12 +8,12 @@ import { GenerationContext } from '@/lib/domain/types';
 /** Turn an SDK/runtime error into a clean, user-facing message (no raw JSON). */
 function cleanError(e: unknown): { message: string; status: number } {
   if (e instanceof OpenAI.APIError) {
-    const msg = e.message || 'Erreur OpenAI.';
-    if (e.status === 401) return { message: 'Clé API OpenAI invalide.', status: 502 };
+    const msg = e.message || 'Erreur du fournisseur LLM.';
+    if (e.status === 401) return { message: 'Clé API invalide.', status: 502 };
     if (e.status === 429 || /quota|insufficient/i.test(msg))
       return {
         message:
-          'Quota OpenAI insuffisant ou limite atteinte — vérifie ton crédit sur platform.openai.com → Billing. (Le mode « Vérifier » prouve une copie sans appeler le LLM.)',
+          'Quota insuffisant ou limite atteinte — vérifie ton crédit chez ton fournisseur LLM (Z.ai). (Le mode « Vérifier » prouve une copie sans appeler le LLM.)',
         status: 502,
       };
     return { message: msg, status: 502 };
@@ -23,7 +23,7 @@ function cleanError(e: unknown): { message: string; status: number } {
 
 // POST { context, mode, brief?, draft?, rows? }
 //   mode "verify"           → deterministic proof of a pasted draft (no LLM, no key needed)
-//   mode "write" | "rewrite"→ LLM drafts → verify → bounded repair (needs ANTHROPIC_API_KEY)
+//   mode "write" | "rewrite"→ LLM drafts → verify → bounded repair (needs OPENAI_API_KEY)
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
         );
       }
       return Response.json(
-        { error: 'no_api_key', message: 'ANTHROPIC_API_KEY non configurée — utilisez le mode « Vérifier » pour prouver une copie collée.' },
+        { error: 'no_api_key', message: 'OPENAI_API_KEY non configurée — utilisez le mode « Vérifier » pour prouver une copie collée.' },
         { status: 503 },
       );
     }

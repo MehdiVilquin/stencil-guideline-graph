@@ -31,7 +31,7 @@ export default function Composer({
 }) {
   const hasText = text.trim().length > 0;
   const running = busy !== null;
-  const placeholder = mode === "write" ? "Écrivez un brief ou une description" : "Coller le texte à corriger";
+  const placeholder = mode === "write" ? "Write a brief or description" : "Paste the text to correct";
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -51,7 +51,7 @@ export default function Composer({
           <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[var(--primary)]" aria-hidden />
           {resolved ? (
             <span className="font-mono text-[11px] tabular-nums text-[var(--muted-foreground)]">
-              {resolved.active.length} / {resolved.applicableCount} règles actives
+              {resolved.active.length} / {resolved.applicableCount} active rules
             </span>
           ) : (
             <span className="font-mono text-[11px] text-[var(--muted-foreground)]">…</span>
@@ -65,7 +65,7 @@ export default function Composer({
           onKeyDown={onKeyDown}
           rows={3}
           placeholder={placeholder}
-          aria-label="Texte à générer ou corriger"
+          aria-label="Text to generate or correct"
           className="composer-textarea w-full resize-none bg-transparent px-1 text-[14px] leading-snug text-[var(--foreground)] outline-none"
         />
 
@@ -77,11 +77,11 @@ export default function Composer({
             onClick={onWand}
             disabled={busyWand}
             aria-busy={busyWand}
-            aria-label="Charger un exemple à corriger"
+            aria-label="Load a sample to correct"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45 disabled:opacity-40"
           >
             <Sparkle className="h-[15px] w-[15px] text-[var(--muted-foreground)]" />
-            {busyWand ? "Génération…" : "Exemple"}
+            {busyWand ? "Generating…" : "Sample"}
           </button>
 
           <span className="flex-1" />
@@ -90,7 +90,7 @@ export default function Composer({
           <button
             type="button"
             onClick={() => onMode(mode === "write" ? "rewrite" : "write")}
-            title="Basculer Créer / Corriger"
+            title="Toggle Create / Correct"
             className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)] py-1.5 pl-3 pr-2 text-[13px] font-medium text-[var(--foreground)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45"
           >
             {KIND_LABEL[mode]}
@@ -103,7 +103,7 @@ export default function Composer({
             onClick={() => (running ? onStop() : onRun(mode))}
             disabled={!running && !hasText}
             aria-busy={running}
-            aria-label={running ? "Arrêter la génération" : "Lancer la génération"}
+            aria-label={running ? "Stop generation" : "Run generation"}
             className={`flex h-10 w-10 items-center justify-center rounded-full text-[var(--primary-foreground)] shadow-[var(--shadow-sm)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45 disabled:opacity-35 ${
               running ? "bg-[var(--foreground)]" : "bg-[var(--primary)]"
             }`}

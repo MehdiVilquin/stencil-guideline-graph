@@ -5,6 +5,7 @@ import type {
   Rule,
   ScopeVector,
 } from "@/lib/domain/types";
+import type { RawRule } from "@/lib/domain/ingest";
 
 export type Facets = Record<keyof ScopeVector, string[]>;
 export type Mode = "write" | "rewrite";
@@ -27,12 +28,12 @@ export const DIMS: {
   wildcard: string;
   wildcardLabel: string;
 }[] = [
-  { key: "brand", label: "Marque", wildcard: "All", wildcardLabel: "Toutes les marques" },
-  { key: "locale", label: "Langue", wildcard: "global", wildcardLabel: "Toutes les langues" },
-  { key: "contentType", label: "Type de contenu", wildcard: "All", wildcardLabel: "Tous les contenus" },
-  { key: "productCategory", label: "Catégorie", wildcard: "All", wildcardLabel: "Toutes les catégories" },
-  { key: "productType", label: "Type de produit", wildcard: "All", wildcardLabel: "Tous les types" },
-  { key: "field", label: "Champ", wildcard: "all", wildcardLabel: "Tous les champs" },
+  { key: "brand", label: "Brand", wildcard: "All", wildcardLabel: "All brands" },
+  { key: "locale", label: "Locale", wildcard: "global", wildcardLabel: "All locales" },
+  { key: "contentType", label: "Content type", wildcard: "All", wildcardLabel: "All content types" },
+  { key: "productCategory", label: "Category", wildcard: "All", wildcardLabel: "All categories" },
+  { key: "productType", label: "Product type", wildcard: "All", wildcardLabel: "All types" },
+  { key: "field", label: "Field", wildcard: "all", wildcardLabel: "All fields" },
 ];
 
 /** Acronyms kept fully uppercase when prettifying raw facet values. */
@@ -47,7 +48,7 @@ const titleizeWord = (w: string) => {
 
 const prettyLocale = (value: string) => {
   try {
-    const name = new Intl.DisplayNames(["fr"], { type: "language" }).of(value);
+    const name = new Intl.DisplayNames(["en"], { type: "language" }).of(value);
     return name ? name.charAt(0).toUpperCase() + name.slice(1) : value;
   } catch {
     return value;
@@ -84,4 +85,56 @@ export const DEMO_CONTEXT: GenerationContext = {
 export const ctxLabel = (c: GenerationContext) =>
   [c.brand, c.locale].filter(Boolean).join(" · ");
 
-export const KIND_LABEL: Record<Mode, string> = { write: "Créer", rewrite: "Corriger" };
+export const KIND_LABEL: Record<Mode, string> = { write: "Create", rewrite: "Correct" };
+
+/* ───────────────────────── Library objects ─────────────────────────
+   A Model = an ingested guideline set (frozen graph), named + colored.
+   A Session = a workspace bound to ONE model + a generation context.
+   Both persist in localStorage (see app/store/library.ts). The graph and
+   facets are DERIVED from `rows` on demand — we store the raw rows so any
+   set goes through the same ingest pipeline (data-driven). */
+
+export interface Model {
+  id: string;
+  name: string;
+  /** monogram background — oklch, derived from the name */
+  color: string;
+  /** 1–2 letter monogram derived from the name */
+  monogram: string;
+  /** filename or "Échantillon" */
+  source: string;
+  rows: RawRule[];
+  createdAt: number;
+}
+
+export interface Session {
+  id: string;
+  modelId: string;
+  title: string;
+  ctx: GenerationContext;
+  turns: Turn[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * A sensible, valid default context for an arbitrary uploaded model: the first
+ * concrete facet value per dimension, else the dimension's wildcard token.
+ * Deterministic and always applicable (see isApplicable in lib/domain/scope.ts);
+ * the user refines it in the "New session" screen.
+ */
+export function seedContextFromFacets(facets: Facets): GenerationContext {
+  const pick = (k: keyof GenerationContext) => {
+    const dim = DIMS.find((d) => d.key === k)!;
+    const vals = facets[k] ?? [];
+    return vals.length ? vals[0] : dim.wildcard;
+  };
+  return {
+    brand: pick("brand"),
+    locale: pick("locale"),
+    contentType: pick("contentType"),
+    productCategory: pick("productCategory"),
+    productType: pick("productType"),
+    field: pick("field"),
+  };
+}

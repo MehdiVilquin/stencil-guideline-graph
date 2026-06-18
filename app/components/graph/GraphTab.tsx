@@ -7,11 +7,11 @@ import Strata from "./Strata";
 import WeightLadder from "./WeightLadder";
 import PinBoard from "./PinBoard";
 
-type View = "poids" | "graphe" | "matrice";
+type View = "weight" | "graph" | "matrix";
 const VIEWS: { key: View; label: string }[] = [
-  { key: "poids", label: "Poids" },
-  { key: "graphe", label: "Graphe" },
-  { key: "matrice", label: "Matrice" },
+  { key: "weight", label: "Weight" },
+  { key: "graph", label: "Graph" },
+  { key: "matrix", label: "Matrix" },
 ];
 
 /** Graph tab: 3 views over the same resolved context. */
@@ -24,8 +24,8 @@ export default function GraphTab({
   resolved: ResolveResult | null;
   onRule: (localId: string) => void;
 }) {
-  const [view, setView] = useState<View>("poids");
-  if (!graph || !resolved) return <div className="text-sm text-[var(--muted-foreground)]">Chargement…</div>;
+  const [view, setView] = useState<View>("weight");
+  if (!graph || !resolved) return <div className="text-sm text-[var(--muted-foreground)]">Loading…</div>;
 
   const seen = new Map<string, GraphNode>();
   for (const r of resolved.active) seen.set(r.localId, { rule: r, status: "active" });
@@ -51,7 +51,7 @@ export default function GraphTab({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <div role="tablist" aria-label="Vue du graphe" className="flex items-center gap-0.5 rounded-[10px] bg-[var(--muted)] p-[3px]">
+        <div role="tablist" aria-label="Graph view" className="flex items-center gap-0.5 rounded-[10px] bg-[var(--muted)] p-[3px]">
           {VIEWS.map((v) => {
             const active = view === v.key;
             return (
@@ -70,24 +70,24 @@ export default function GraphTab({
             );
           })}
         </div>
-        <span className="text-[11px] tabular-nums text-[var(--muted-foreground)]">{resolved.active.length} actives</span>
+        <span className="text-[11px] tabular-nums text-[var(--muted-foreground)]">{resolved.active.length} active</span>
       </div>
 
-      {view === "poids" && (
+      {view === "weight" && (
         <div className="flex flex-col gap-4">
           <Strata active={resolved.active} />
           <WeightLadder active={resolved.active} relations={relations} />
         </div>
       )}
-      {view === "graphe" && (
+      {view === "graph" && (
         <div className="flex flex-col gap-3">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Vue d’ensemble</div>
+          <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Overview</div>
           <ForceGraph nodes={nodes} edges={edges} onRule={onRule} />
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Détail par sujet</div>
+          <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--muted-foreground)]">By subject</div>
           <ClusterCards nodes={nodes} edges={edges} onRule={onRule} />
         </div>
       )}
-      {view === "matrice" && <PinBoard active={resolved.active} relations={relations} />}
+      {view === "matrix" && <PinBoard active={resolved.active} relations={relations} />}
     </div>
   );
 }

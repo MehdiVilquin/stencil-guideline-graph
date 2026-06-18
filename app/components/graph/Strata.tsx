@@ -33,7 +33,7 @@ function donut(inner: number, outer: number, a0: number, a1: number) {
 
 export default function Strata({ active }: { active: Rule[] }) {
   if (active.length === 0) {
-    return <p className="text-[13px] text-[var(--muted-foreground)]">Aucune règle active pour ce contexte.</p>;
+    return <p className="text-[13px] text-[var(--muted-foreground)]">No active rules for this context.</p>;
   }
 
   const bandRules = (key: Strength | "socle") =>
@@ -45,7 +45,7 @@ export default function Strata({ active }: { active: Rule[] }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-[380px]" role="img" aria-label="Sunburst de conformité — règles actives par force">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-[380px]" role="img" aria-label="Compliance sunburst — active rules by strength">
         {BANDS.map((band) => {
           const rules = bandRules(band.key);
           if (rules.length === 0) {
@@ -77,7 +77,7 @@ export default function Strata({ active }: { active: Rule[] }) {
                 return (
                   <g key={r.localId}>
                     <path d={donut(band.inner, band.outer, a0, a1)} fill={cat.color} fillOpacity={0.16} stroke={cat.color} strokeWidth={1}>
-                      <title>{`#${r.localId} · ${r.name} · ${band.label} · spéc ${ruleSpecificity(r)}`}</title>
+                      <title>{`#${r.localId} · ${r.name} · ${band.label} · spec ${ruleSpecificity(r)}`}</title>
                     </path>
                     {span > 16 && (
                       <text x={mid.x} y={mid.y} textAnchor="middle" dominantBaseline="middle" className="fill-[var(--foreground)] text-[10px] font-medium">
@@ -96,12 +96,12 @@ export default function Strata({ active }: { active: Rule[] }) {
           {active.length}
         </text>
         <text x={C} y={C + 11} textAnchor="middle" className="fill-[var(--muted-foreground)] text-[10px]">
-          actives
+          active
         </text>
       </svg>
 
       <div className="flex flex-col items-center gap-1.5 text-[10px] text-[var(--muted-foreground)]">
-        <span>anneaux : socle · forbidden · hard · conditional · soft — largeur d’arc = spécificité</span>
+        <span>rings: baseline · forbidden · hard · conditional · soft — arc width = specificity</span>
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
           {(["lexical-forbidden", "lexical-required", "format-pattern", "length-bound", "structure", "register-tone"] as const).map((c) => (
             <span key={c} className="inline-flex items-center gap-1">

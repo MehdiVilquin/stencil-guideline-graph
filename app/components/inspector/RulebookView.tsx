@@ -21,7 +21,8 @@ export default function RulebookView({
   const report = result.report;
   const proven = report.filter((v) => v.verifiable && v.pass);
   const violations = report.filter((v) => v.verifiable && !v.pass);
-  const judged = report.filter((v) => !v.verifiable);
+  const judgedFail = report.filter((v) => !v.verifiable && !v.pass);
+  const judgedPass = report.filter((v) => !v.verifiable && v.pass);
   const contested = decisions.filter((d) => d.beat.length > 0);
 
   return (
@@ -30,7 +31,7 @@ export default function RulebookView({
       <ProofScore report={report} />
 
       {violations.length > 0 && (
-        <Group icon={<Cross className="h-3.5 w-3.5 text-[var(--destructive)]" />} title="Violations" sub="à corriger" count={`${violations.length}`} countColor="var(--destructive)">
+        <Group icon={<Cross className="h-3.5 w-3.5 text-[var(--destructive)]" />} title="Violations" sub="to fix" count={`${violations.length}`} countColor="var(--destructive)">
           {violations.map((v) => (
             <RuleRow key={v.localId} v={v} onRule={onRule} />
           ))}
@@ -39,8 +40,8 @@ export default function RulebookView({
 
       <Group
         icon={<Check className="h-3.5 w-3.5 text-[var(--ok)]" />}
-        title="Prouvées"
-        sub="déterministe"
+        title="Proven"
+        sub="deterministic"
         count={`${proven.length}/${proven.length + violations.length}`}
         countColor="var(--ok)"
       >
@@ -49,15 +50,29 @@ export default function RulebookView({
         ))}
       </Group>
 
-      {judged.length > 0 && (
-        <Accordion
+      {judgedFail.length > 0 && (
+        <Group
           icon={<HalfCircle className="h-3.5 w-3.5 text-[var(--judged)]" />}
-          title="Jugées"
-          sub="par le LLM"
-          count={`${judged.length}`}
+          title="Judged — not met"
+          sub="LLM-judged, not proven"
+          count={`${judgedFail.length}`}
           countColor="var(--judged)"
         >
-          {judged.map((v) => (
+          {judgedFail.map((v) => (
+            <RuleRow key={v.localId} v={v} onRule={onRule} />
+          ))}
+        </Group>
+      )}
+
+      {judgedPass.length > 0 && (
+        <Accordion
+          icon={<HalfCircle className="h-3.5 w-3.5 text-[var(--judged)]" />}
+          title="Judged — met"
+          sub="LLM-judged, not proven"
+          count={`${judgedPass.length}`}
+          countColor="var(--judged)"
+        >
+          {judgedPass.map((v) => (
             <RuleRow key={v.localId} v={v} onRule={onRule} />
           ))}
         </Accordion>
@@ -66,8 +81,8 @@ export default function RulebookView({
       {contested.length > 0 && (
         <Accordion
           icon={<Scale className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />}
-          title="Précédence"
-          sub="pourquoi ces règles"
+          title="Precedence"
+          sub="why these rules"
           count={`${contested.length}`}
           countColor="var(--primary)"
         >
@@ -91,7 +106,7 @@ function ResultBlock({ kind, copy }: { kind: "write" | "rewrite"; copy: string }
     <div className="rounded-[14px] border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-2.5 flex items-center justify-between">
         <span className="rounded-full bg-[var(--primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--primary)]">
-          {kind === "write" ? "Créé" : "Corrigé"}
+          {kind === "write" ? "Created" : "Corrected"}
         </span>
         <button
           type="button"
@@ -99,7 +114,7 @@ function ResultBlock({ kind, copy }: { kind: "write" | "rewrite"; copy: string }
           className="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45"
         >
           <Copy className="h-[13px] w-[13px] text-[var(--muted-foreground)]" />
-          {copied ? "Copié" : "Copier"}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
       <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--foreground)]">{copy}</p>
@@ -110,7 +125,7 @@ function ResultBlock({ kind, copy }: { kind: "write" | "rewrite"; copy: string }
 /* ── Proof score header + segmented bar ── */
 
 function ProofScore({ report }: { report: Verdict[] }) {
-  const { provable, greens, judged } = proofStats(report);
+  const { provable, greens, judged, judgedFail } = proofStats(report);
   const violations = provable - greens;
   const seg = (count: number, color: string) =>
     count > 0 ? <div className="h-2 rounded-full" style={{ flexGrow: count, backgroundColor: color }} /> : null;
@@ -123,11 +138,14 @@ function ProofScore({ report }: { report: Verdict[] }) {
             <span className="tabular-nums">
               {greens}/{provable}
             </span>{" "}
-            prouvées
+            proven
           </span>
-          <span className="text-[14px] text-[var(--muted-foreground)]"> · {judged} jugées</span>
+          <span className="text-[14px] text-[var(--muted-foreground)]"> · {judged} judged</span>
+          {judgedFail > 0 && (
+            <span className="text-[14px] font-medium text-[var(--judged)]"> ({judgedFail} unmet)</span>
+          )}
         </div>
-        <span className="text-[12px] tabular-nums text-[var(--muted-foreground)]">{report.length} règles</span>
+        <span className="text-[12px] tabular-nums text-[var(--muted-foreground)]">{report.length} rules</span>
       </div>
       <div className="flex w-full gap-0.5">
         {seg(greens, "color-mix(in oklch, var(--ok) 55%, white)")}
@@ -156,7 +174,7 @@ function RuleRow({ v, onRule }: { v: Verdict; onRule: (localId: string) => void 
     <button
       type="button"
       onClick={() => onRule(v.localId)}
-      title={`Voir #${v.localId} dans la doctrine`}
+      title={`View #${v.localId} in doctrine`}
       className="flex w-full items-start gap-2.5 border-b border-[var(--border)] py-2.5 text-left transition last:border-0 hover:bg-[var(--muted)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/40"
     >
       <span className="mt-0.5 shrink-0">{statusIcon(v)}</span>
@@ -281,7 +299,7 @@ function PrecedenceList({ decisions }: { decisions: Decision[] }) {
       {decisions.map((d, i) => (
         <div key={i} className="text-[12px] leading-relaxed">
           <span className="font-medium text-[var(--foreground)]">#{d.winner.localId}</span>{" "}
-          <span className="text-[var(--muted-foreground)]">gagne sur</span>{" "}
+          <span className="text-[var(--muted-foreground)]">wins over</span>{" "}
           {d.beat.map((b, j) => (
             <span key={b.rule.localId} className="font-medium text-[var(--foreground)]">
               {j > 0 && ", "}#{b.rule.localId}
@@ -303,7 +321,7 @@ function ActivePreview({
   resolved: ResolveResult | null;
   onRule: (localId: string) => void;
 }) {
-  if (!resolved) return <div className="text-sm text-[var(--muted-foreground)]">Chargement…</div>;
+  if (!resolved) return <div className="text-sm text-[var(--muted-foreground)]">Loading…</div>;
   const contested = resolved.decisions.filter((d) => d.beat.length > 0);
   return (
     <div className="flex flex-col gap-4">
@@ -311,9 +329,9 @@ function ActivePreview({
         <div className="mb-1.5 flex items-center gap-1.5">
           <span className="h-[7px] w-[7px] rounded-full bg-[var(--primary)]" />
           <span className="text-[13px] font-medium text-[var(--foreground)]">
-            {resolved.active.length} règles actives
+            {resolved.active.length} active rules
           </span>
-          <span className="text-[12px] text-[var(--muted-foreground)]">· contexte courant</span>
+          <span className="text-[12px] text-[var(--muted-foreground)]">· current context</span>
         </div>
         <div>
           {resolved.active.map((r) => (
@@ -324,8 +342,8 @@ function ActivePreview({
       {contested.length > 0 && (
         <Accordion
           icon={<Scale className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />}
-          title="Précédence"
-          sub="pourquoi ces règles"
+          title="Precedence"
+          sub="why these rules"
           count={`${contested.length}`}
           countColor="var(--primary)"
         >
@@ -333,7 +351,7 @@ function ActivePreview({
         </Accordion>
       )}
       <p className="text-[12px] text-[var(--muted-foreground)]">
-        Corrige une copie à gauche pour voir la preuve, règle par règle, apparaître ici.
+        Correct a copy on the left to see the proof, rule by rule, appear here.
       </p>
     </div>
   );
@@ -356,7 +374,7 @@ function ActiveRuleRow({ rule, onRule }: { rule: Rule; onRule: (localId: string)
       </span>
       {!rule.overridable && (
         <span className="shrink-0 rounded-full bg-[var(--primary)]/10 px-1.5 py-0.5 text-[9px] font-medium uppercase text-[var(--primary)]">
-          socle
+          baseline
         </span>
       )}
     </button>

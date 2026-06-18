@@ -4,7 +4,8 @@
 // can't prove (quote artifacts, markdown fences, preamble, franglais leak), and
 // compares models to separate pipeline issues from model issues.
 //
-//   npm run eval                       # ollama:llama3.2 (+ mistral if EVAL_LOCAL_COMPARE=1)
+//   npm run eval                       # the configured provider (GLM-4.7 via .env.local)
+//   EVAL_LOCAL_COMPARE=1 npm run eval  # + local ollama:mistral comparison
 //   EVAL_STRONG_KEY=gsk_… npm run eval # + Groq llama-3.3-70b comparison
 //
 // Writes eval/RESULTS.md and prints a summary. Never part of `npm test`.
@@ -25,7 +26,12 @@ interface Profile {
   model: string;
 }
 const PROFILES: Profile[] = [
-  { id: "ollama:llama3.2", baseURL: "http://localhost:11434/v1", key: "ollama", model: "llama3.2" },
+  {
+    id: process.env.OPENAI_MODEL || "glm-4.7",
+    baseURL: process.env.OPENAI_BASE_URL || "https://api.z.ai/api/paas/v4",
+    key: process.env.OPENAI_API_KEY || "",
+    model: process.env.OPENAI_MODEL || "glm-4.7",
+  },
 ];
 if (process.env.EVAL_LOCAL_COMPARE) {
   PROFILES.push({ id: "ollama:mistral", baseURL: "http://localhost:11434/v1", key: "ollama", model: "mistral" });

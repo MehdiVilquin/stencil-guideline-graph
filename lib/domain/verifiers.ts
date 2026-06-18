@@ -192,6 +192,60 @@ export function verifyAll(copy: string, rules: Rule[]): Verdict[] {
   return rules.map((r) => verify(copy, r));
 }
 
+// ─── Franglais check (A) ─────────────────────────────────────────────────────
+// Deterministic foreign-term detector for non-English Latin locales (fr/de/it).
+// High-signal source = the replacement terms prescribed by lexical-forbidden
+// rules ("use X instead"), which the LLM tends to paste verbatim in English.
+// Plus a small, unambiguous English marker list. Brand + required canonical
+// forms (trail-ready, coupe-vent…) are allow-listed so they never flag.
+const EN_FRANGLAIS_MARKERS = [
+  'the', 'and', 'with', 'your', 'you', 'for', 'this', 'our', 'from',
+  'waterproof', 'water-resistant', 'eco-friendly', 'recycled', 'lightweight',
+  'breathable', 'boost', 'glow', 'sleek', 'flawless',
+];
+
+/** Keep-verbatim tokens = first quoted token of each lexical-required rule. */
+export function requiredCanonicalTokens(rules: Rule[]): string[] {
+  return rules
+    .filter((r) => r.constraintType === 'lexical-required')
+    .map((r) => quotedTokens(r.text)[0])
+    .filter((t): t is string => !!t);
+}
+
+/** Is this locale a non-English Latin-script locale the franglais check covers? */
+export function franglaisApplies(locale: string): boolean {
+  const lang = LOCALE_LANG[locale] ?? LOCALE_LANG[locale.split('-')[0]];
+  return lang === 'fr' || lang === 'de' || lang === 'it';
+}
+
+/** Flag English replacement terms / markers appearing verbatim in non-English
+ *  copy — EXCEPT the brand and required canonical forms. Rule-grounded + precise. */
+export function verifyForeignTerms(copy: string, rules: Rule[], brand: string): Verdict {
+  const mk = (pass: boolean, evidence: string): Verdict => ({
+    localId: 'franglais',
+    ruleName: 'Pas de franglais',
+    constraintType: 'lexical-forbidden',
+    pass,
+    verifiable: true,
+    evidence,
+  });
+
+  const suspects = new Set<string>(EN_FRANGLAIS_MARKERS);
+  for (const r of rules) {
+    if (r.constraintType === 'lexical-forbidden')
+      for (const t of replacementTokens(r.text)) suspects.add(t);
+  }
+
+  const allow = new Set<string>();
+  for (const t of requiredCanonicalTokens(rules)) allow.add(lc(t));
+  for (const w of lc(brand).split(/[^\p{L}]+/u)) if (w) allow.add(w);
+
+  const hits = [...suspects].filter((t) => !allow.has(lc(t)) && present(copy, t));
+  return hits.length
+    ? mk(false, `mot(s) anglais à traduire : ${hits.map((h) => `« ${h} »`).join(', ')}`)
+    : mk(true, 'aucun mot anglais hors marque / termes imposés');
+}
+
 // ─── Language adherence (meta-check, not a graph rule) ───────────────────────
 // The deterministic engine can't prove tone, but it CAN catch the gross failure
 // of a copy written in the wrong language for the locale (e.g. French for de-DE).

@@ -6,7 +6,14 @@
 import { complete } from '../llm';
 import { directiveSignature, numericBound } from './directive';
 import { resolve } from './precedence';
-import { verifyAll, verifyLanguage } from './verifiers';
+import {
+  franglaisApplies,
+  requiredCanonicalTokens,
+  verifyAll,
+  verifyForeignTerms,
+  verifyLanguage,
+} from './verifiers';
+import { judgeUnverifiable } from './judge';
 import { AttemptRecord, GenerationContext, GenerationResult, Rule, Verdict } from './types';
 
 const CT_LABEL: Record<string, string> = {
@@ -48,6 +55,23 @@ export function buildSystemPrompt(ctx: GenerationContext, active: Rule[]): strin
     }
   }
 
+  // Non-English locale: the rules (and their suggested replacement terms) are
+  // written in English. Force translation of replacements, but keep brand +
+  // required canonical forms verbatim — else we leak franglais (e.g. "water-resistant").
+  const isEnglish = ctx.locale.toLowerCase().startsWith('en');
+  const keepVerbatim = [ctx.brand, ...requiredCanonicalTokens(active)].filter(Boolean);
+  const franglaisGuard = isEnglish
+    ? [
+        `Écris EXCLUSIVEMENT en ${langName(ctx.locale)}.`,
+      ]
+    : [
+        `Écris EXCLUSIVEMENT en ${langName(ctx.locale)}. N'emploie AUCUN mot d'une autre langue (pas de franglais).`,
+        `Les règles ci-dessus sont en anglais : traduis dans la langue du locale TOUT terme`,
+        `suggéré comme remplacement (ex. « use "water-resistant" instead » → emploie l'équivalent`,
+        `dans la langue du locale). Ne garde tels quels QUE les noms propres et formes imposées`,
+        `suivantes : ${keepVerbatim.map((t) => `« ${t} »`).join(', ')}.`,
+      ];
+
   return [
     `Tu es un rédacteur de contenu e-commerce pour la marque « ${ctx.brand} ».`,
     `Contexte de génération : locale ${ctx.locale} · type ${ctx.contentType} · champ « ${ctx.field} » · produit ${ctx.productType}.`,
@@ -57,8 +81,7 @@ export function buildSystemPrompt(ctx: GenerationContext, active: Rule[]): strin
     `Les règles [INVARIANT] sont des garde-fous de conformité : jamais d'exception.`,
     lines.join('\n'),
     ``,
-    `Écris EXCLUSIVEMENT en ${langName(ctx.locale)}. N'emploie AUCUN mot d'une autre langue`,
-    `(pas de franglais) — seuls les noms propres de marque/produit peuvent rester tels quels.`,
+    ...franglaisGuard,
     `Réponds UNIQUEMENT par le texte de la copie pour le champ « ${ctx.field} » :`,
     `pas de préambule, pas d'explication, pas de markdown, pas de titres,`,
     `et n'entoure JAMAIS ta réponse de guillemets.`,
@@ -87,7 +110,7 @@ function repairPrompt(prevCopy: string, failing: Verdict[]): string {
       // Bullet count: spell out the exact item range expected.
       const b = v.evidence.match(/éléments\s*\(borne\s*(\d+)[–-](\d+)\)/);
       const extra = m
-        ? ` → RÉDUIS le texte à ${m[2]} caractères MAXIMUM (actuellement ${m[1]})`
+        ? ` → RÉDUIS à ${Math.max(20, Number(m[2]) - 10)} caractères ou moins (actuellement ${m[1]}), en TERMINANT par une phrase complète — ne coupe pas un mot`
         : b
           ? ` → produis EXACTEMENT ${b[1]} à ${b[2]} puces, une par ligne, sans point final`
           : '';
@@ -139,7 +162,7 @@ export function mechanicalFix(copy: string, active: Rule[]): string {
 /** Last-resort: truncate to the tightest character bound at a word boundary
  *  (item/bullet bounds are left to the LLM). Lossy but guarantees the length
  *  proof; the report is re-run afterwards so it stays honest. */
-function truncateToBounds(copy: string, active: Rule[]): string {
+export function truncateToBounds(copy: string, active: Rule[]): string {
   const bounds = active
     .filter((r) => r.constraintType === 'length-bound' && !/item|bullet/i.test(r.text))
     .map((r) => numericBound(r))
@@ -148,13 +171,25 @@ function truncateToBounds(copy: string, active: Rule[]): string {
   const bound = Math.min(...bounds);
   if (copy.length <= bound) return copy;
   const cut = copy.slice(0, bound);
+  // Prefer the last COMPLETE sentence within the bound (avoid dangling fragments
+  // like "…ready for your next"). Fall back to a word boundary only if no
+  // sentence terminator sits past ~50% of the budget.
+  const term = Math.max(
+    cut.lastIndexOf('.'),
+    cut.lastIndexOf('!'),
+    cut.lastIndexOf('?'),
+    cut.lastIndexOf('。'),
+  );
+  if (term > bound * 0.5) return cut.slice(0, term + 1).trim();
   const lastSpace = cut.lastIndexOf(' ');
   return (lastSpace > bound * 0.6 ? cut.slice(0, lastSpace) : cut).trim();
 }
 
-/** Full report = per-rule verdicts + the language meta-check. */
+/** Full report = per-rule verdicts + language meta-check + (non-en) franglais check. */
 function fullReport(copy: string, active: Rule[], ctx: GenerationContext): Verdict[] {
-  return [...verifyAll(copy, active), verifyLanguage(copy, ctx.locale)];
+  const report = [...verifyAll(copy, active), verifyLanguage(copy, ctx.locale)];
+  if (franglaisApplies(ctx.locale)) report.push(verifyForeignTerms(copy, active, ctx.brand));
+  return report;
 }
 
 /** Snapshot the failing (machine-checkable) verdicts of one attempt for the trace. */
@@ -240,7 +275,13 @@ export async function generate(
   let attempts = 1;
   const history: AttemptRecord[] = [snapshot(attempts, report)];
 
-  while (stillFailing(report).length > 0 && attempts <= 2) {
+  // Character-length bounds are the hardest for the LLM to hit → allow one extra
+  // repair when ONLY length rules remain failing.
+  const onlyLengthFails = () => {
+    const f = stillFailing(report);
+    return f.length > 0 && f.every((v) => v.evidence.includes('caract'));
+  };
+  while (stillFailing(report).length > 0 && attempts <= (onlyLengthFails() ? 3 : 2)) {
     copy = mechanicalFix(await complete(system, repairPrompt(copy, stillFailing(report))), active);
     report = fullReport(copy, active, ctx);
     attempts++;
@@ -248,11 +289,23 @@ export async function generate(
   }
 
   // Last resort for character-length bounds the LLM couldn't hit: deterministic
-  // truncation, then re-verify so the report reflects the truncated copy.
+  // truncation (at a sentence boundary), then re-verify so the report is honest.
   if (stillFailing(report).some((v) => v.evidence.includes('caractères'))) {
     copy = truncateToBounds(copy, active);
     report = fullReport(copy, active, ctx);
   }
+
+  // LLM-judge the non-verifiable rules (register/tone/structure) as a SEPARATE,
+  // clearly-labeled confidence layer. It NEVER gates allProvableGreen (which stays
+  // purely deterministic) — it only turns "assumed pass" into an explicit verdict.
+  const judgments = await judgeUnverifiable(copy, report, active, ctx);
+  if (judgments.size) {
+    report = report.map((v) => {
+      const j = !v.verifiable ? judgments.get(v.localId) : undefined;
+      return j ? { ...v, pass: j.pass, evidence: j.reason || v.evidence } : v;
+    });
+  }
+  const judgedFailures = report.filter((v) => !v.verifiable && !v.pass).length;
 
   return {
     context: ctx,
@@ -260,6 +313,7 @@ export async function generate(
     report,
     attempts,
     allProvableGreen: stillFailing(report).length === 0,
+    judgedFailures,
     history,
   };
 }

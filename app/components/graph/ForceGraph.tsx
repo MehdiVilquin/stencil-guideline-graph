@@ -72,7 +72,7 @@ export default function ForceGraph({
 
   return (
     <div className="rounded-[14px] border border-[var(--border)] bg-[var(--card)] p-2">
-      <svg viewBox={`0 0 ${VIEW_W} ${totalH}`} className="w-full" role="img" aria-label="Graphe des règles actives — par force">
+      <svg viewBox={`0 0 ${VIEW_W} ${totalH}`} className="w-full" role="img" aria-label="Active rules graph — by strength">
         <defs>
           <marker id="fg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M0 0L10 5L0 10z" fill="var(--primary)" />

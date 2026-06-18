@@ -24,9 +24,9 @@ export default function Nav({
   onNext: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] p-3">
+    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-2">
       {/* iOS-style segmented control */}
-      <div role="tablist" aria-label="Vues" className="flex items-center gap-0.5 rounded-[10px] bg-[var(--muted)] p-[3px]">
+      <div role="tablist" aria-label="Views" className="flex items-center gap-0.5 rounded-[10px] bg-[var(--muted)] p-[3px]">
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -49,8 +49,8 @@ export default function Nav({
       </div>
 
       <div className="flex gap-1.5">
-        <NavBtn label="Tour précédent" disabled={!canPrev} onClick={onPrev} up />
-        <NavBtn label="Tour suivant" disabled={!canNext} onClick={onNext} />
+        <NavBtn label="Previous turn" disabled={!canPrev} onClick={onPrev} up />
+        <NavBtn label="Next turn" disabled={!canNext} onClick={onNext} />
       </div>
     </div>
   );

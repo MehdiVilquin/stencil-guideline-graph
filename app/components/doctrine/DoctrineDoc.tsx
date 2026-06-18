@@ -12,10 +12,10 @@ import { describeScope } from "@/lib/domain/scope";
 import { CONSTRAINT_LABEL } from "@/lib/ui/labels";
 
 const STRENGTH_LABEL: Record<Strength, string> = {
-  forbidden: "interdiction",
-  "hard-rule": "règle ferme",
-  conditional: "conditionnel",
-  "soft-preference": "préférence",
+  forbidden: "forbidden",
+  "hard-rule": "hard rule",
+  conditional: "conditional",
+  "soft-preference": "preference",
 };
 
 /**
@@ -47,21 +47,21 @@ export default function DoctrineDoc({
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-[18px] font-semibold tracking-tight text-[var(--foreground)]">
-          Doctrine de marque
+          Brand doctrine
         </h1>
         <p className="text-[12px] text-[var(--muted-foreground)]">
-          Compilation déterministe du graphe typé — la « loi » explicite, éditable, applicable.
+          Deterministic compilation of the typed graph — the explicit, editable, enforceable law.
         </p>
         <p className="text-[11px] tabular-nums text-[var(--muted-foreground)]">
-          {model.meta.ruleCount} règles · {model.meta.edgeCount} relations ·{" "}
-          {model.meta.flaggedCount} à clarifier · marques : {model.meta.brands.join(", ") || "—"}
+          {model.meta.ruleCount} rules · {model.meta.edgeCount} relations ·{" "}
+          {model.meta.flaggedCount} to clarify · brands: {model.meta.brands.join(", ") || "—"}
         </p>
       </header>
 
       {model.invariants.length > 0 && (
         <Section
-          title="Invariants — garde-fous non négociables"
-          sub="Plancher de conformité, hors de la cascade de précédence (légal / médical / sécurité)."
+          title="Invariants — non-negotiable guardrails"
+          sub="Compliance floor, outside the precedence cascade (legal / medical / safety)."
         >
           {model.invariants.map((r) => (
             <RuleItem key={r.localId} rule={r} hl={hl} />
@@ -69,7 +69,7 @@ export default function DoctrineDoc({
         </Section>
       )}
 
-      <Section title="Règles par type de contrainte">
+      <Section title="Rules by constraint type">
         <div className="flex flex-col gap-5">
           {model.groups.map((g) => (
             <div key={g.constraintType} className="flex flex-col gap-2">
@@ -77,7 +77,7 @@ export default function DoctrineDoc({
                 {constraintTypeLabel(g.constraintType)}
                 {g.constraintType === "register-tone" && (
                   <span className="text-[11px] font-normal italic text-[var(--muted-foreground)]">
-                    jugé, non prouvable mécaniquement
+                    judged, not mechanically provable
                   </span>
                 )}
               </h3>
@@ -96,14 +96,14 @@ export default function DoctrineDoc({
 
       {model.conflicts.length > 0 && (
         <Section
-          title="Conflits détectés & résolution"
-          sub="Comment la précédence tranche, par sujet. Les relations ne sont créées qu’entre scopes qui se chevauchent → une partition par marque n’est pas un conflit."
+          title="Detected conflicts & resolution"
+          sub="How precedence resolves, by subject. Relations are only created between overlapping scopes → a brand partition is not a conflict."
         >
           <div className="flex flex-col gap-4">
             {model.conflicts.map((c) => (
               <div key={c.subject} className="flex flex-col gap-1.5">
                 <h3 className="text-[13px] font-medium text-[var(--foreground)]">
-                  Sujet « {c.subject} »
+                  Subject &laquo;{c.subject}&raquo;
                 </h3>
                 {c.items.map((it, i) => (
                   <ConflictItem key={i} item={it} />
@@ -116,8 +116,8 @@ export default function DoctrineDoc({
 
       {model.flagged.length > 0 && (
         <Section
-          title="À clarifier — hygiène de donnée"
-          sub="Signalées à l’ingestion, jamais appliquées en silence."
+          title="To clarify — data hygiene"
+          sub="Flagged at ingestion, never applied silently."
         >
           {model.flagged.map((r) => (
             <div
@@ -196,7 +196,7 @@ function RuleItem({
         </span>
         {!rule.overridable && (
           <span className="rounded-full bg-[var(--primary)]/10 px-1.5 py-0.5 text-[9px] font-medium uppercase text-[var(--primary)]">
-            socle
+            baseline
           </span>
         )}
       </div>
@@ -207,13 +207,13 @@ function RuleItem({
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--muted-foreground)]">
         <span>
-          Portée : <span className="text-[var(--foreground)]">{describeScope(rule.scope)}</span>
+          Scope: <span className="text-[var(--foreground)]">{describeScope(rule.scope)}</span>
         </span>
         {entry && entry.justifiedBy.length > 0 && (
-          <span>justifiée par {entry.justifiedBy.map((id) => `#${id}`).join(", ")}</span>
+          <span>justified by {entry.justifiedBy.map((id) => `#${id}`).join(", ")}</span>
         )}
         {entry && entry.reinforces.length > 0 && (
-          <span>renforce {entry.reinforces.map((id) => `#${id}`).join(", ")}</span>
+          <span>reinforces {entry.reinforces.map((id) => `#${id}`).join(", ")}</span>
         )}
       </div>
     </div>
@@ -223,11 +223,11 @@ function RuleItem({
 function ConflictItem({ item }: { item: DoctrineConflictItem }) {
   const reason =
     item.kind === "overrides"
-      ? `plus spécifique (${describeScope(item.winner.scope)}) ; hors de ce scope, #${item.loser.localId} s’applique.`
-      : `même niveau de scope, force supérieure (${item.winner.strength} > ${item.loser.strength}).`;
+      ? `more specific (${describeScope(item.winner.scope)}); outside this scope, #${item.loser.localId} applies.`
+      : `same scope level, higher strength (${item.winner.strength} > ${item.loser.strength}).`;
   return (
     <p className="text-[12px] leading-relaxed text-[var(--muted-foreground)]">
-      <span className="font-medium text-[var(--foreground)]">#{item.winner.localId}</span> l’emporte sur{" "}
+      <span className="font-medium text-[var(--foreground)]">#{item.winner.localId}</span> wins over{" "}
       <span className="font-medium text-[var(--foreground)]">#{item.loser.localId}</span> — {reason}
     </p>
   );

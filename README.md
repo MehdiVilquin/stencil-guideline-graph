@@ -104,11 +104,11 @@ violates 5 rules. **`Vérifier`** proves it deterministically — **no API key n
 `Rédiger` / `Réécrire` call the LLM and need a key:
 
 ```bash
-cp .env.example .env.local   # add OPENAI_API_KEY (+ OPENAI_BASE_URL for Groq/Azure/Ollama)
+cp .env.example .env.local   # add your Z.ai API key (defaults to GLM-4.7)
 ```
 
 The drafting client uses the **OpenAI SDK**, so it runs against any OpenAI-compatible endpoint —
-OpenAI, **Groq (free tier)**, Azure, OpenRouter, a local Ollama — by setting `OPENAI_BASE_URL`.
+**GLM-4.7 (Z.ai)** by default, or OpenAI, Groq, Azure, OpenRouter — by setting `OPENAI_BASE_URL`.
 The LLM is a *pluggable drafting component*: switching providers is one `.env` change, the
 deterministic engine and proof layer don't move.
 

@@ -124,7 +124,7 @@ function RuleRow({ node, onRule }: { node: GraphNode; onRule?: (localId: string)
     <button
       type="button"
       onClick={onRule ? () => onRule(r.localId) : undefined}
-      title={onRule ? `Voir #${r.localId} dans la doctrine` : undefined}
+      title={onRule ? `View #${r.localId} in doctrine` : undefined}
       className="flex w-full items-center gap-2 rounded-[6px] py-1 text-left transition hover:bg-[var(--muted)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/40"
     >
       <span className="flex h-4 w-4 shrink-0 items-center justify-center">
@@ -150,8 +150,8 @@ function SoloList({ rules, onRule }: { rules: GraphNode[]; onRule?: (localId: st
         className="flex w-full items-center gap-1.5 px-3.5 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/40"
       >
         {open ? <ChevronDown className="h-3.5 w-3.5 text-[var(--muted-foreground)]" /> : <ChevronRight className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />}
-        <span className="text-[12px] font-medium text-[var(--foreground)]">Règles solo</span>
-        <span className="text-[12px] text-[var(--muted-foreground)]">· sans relation</span>
+        <span className="text-[12px] font-medium text-[var(--foreground)]">Solo rules</span>
+        <span className="text-[12px] text-[var(--muted-foreground)]">· no relations</span>
         <span className="ml-auto text-[12px] tabular-nums text-[var(--muted-foreground)]">{rules.length}</span>
       </button>
       {open && (

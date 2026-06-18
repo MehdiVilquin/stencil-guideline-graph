@@ -48,7 +48,7 @@ export default function ContextBar({
         className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] py-1.5 pl-2.5 pr-3 text-[12px] font-medium text-[var(--foreground)] outline-none transition hover:bg-[var(--muted)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45"
       >
         <Sliders className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-        Filtres
+        Filters
         {active.length > 0 && (
           <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-semibold leading-none text-[var(--primary-foreground)]">
             {active.length}
@@ -72,7 +72,7 @@ export default function ContextBar({
           <button
             type="button"
             onClick={() => onDim(d.key, d.wildcard)}
-            aria-label={`Retirer ${d.label}`}
+            aria-label={`Remove ${d.label}`}
             className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[var(--muted-foreground)] outline-none transition hover:bg-[var(--muted)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45"
           >
             <Cross className="h-2.5 w-2.5" />
@@ -83,11 +83,11 @@ export default function ContextBar({
       {open && (
         <div
           role="dialog"
-          aria-label="Filtres"
+          aria-label="Filters"
           className="absolute bottom-full left-0 z-20 mb-1.5 w-[320px] rounded-[12px] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-panel)]"
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="text-[12px] font-semibold text-[var(--foreground)]">Filtres</span>
+            <span className="text-[12px] font-semibold text-[var(--foreground)]">Filters</span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -95,12 +95,12 @@ export default function ContextBar({
                 disabled={active.length === 0}
                 className="rounded-full px-2 py-1 text-[11px] font-medium text-[var(--muted-foreground)] outline-none transition hover:bg-[var(--muted)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45 disabled:pointer-events-none disabled:opacity-40"
               >
-                Tout réinitialiser
+                Reset all
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Fermer"
+                aria-label="Close"
                 className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--muted-foreground)] outline-none transition hover:bg-[var(--muted)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]/45"
               >
                 <Cross className="h-3 w-3" />

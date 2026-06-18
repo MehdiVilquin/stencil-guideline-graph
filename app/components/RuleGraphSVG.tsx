@@ -26,10 +26,10 @@ const NODE_H = 30;
 const MARGIN = 48; // world padding around the node bounding box
 
 const EDGE_STYLE: Record<Edge["type"], { stroke: string; dash?: string; arrow: boolean; width: number; label: string }> = {
-  overrides: { stroke: "var(--primary)", arrow: true, width: 1.5, label: "prime sur" },
-  "conflicts-with": { stroke: "var(--destructive)", dash: "4 3", arrow: false, width: 1.25, label: "conflit" },
-  reinforces: { stroke: "var(--muted-foreground)", arrow: false, width: 1, label: "renforce" },
-  "justified-by": { stroke: "var(--judged)", dash: "1 3", arrow: false, width: 1, label: "justifiée par" },
+  overrides: { stroke: "var(--primary)", arrow: true, width: 1.5, label: "overrides" },
+  "conflicts-with": { stroke: "var(--destructive)", dash: "4 3", arrow: false, width: 1.25, label: "conflict" },
+  reinforces: { stroke: "var(--muted-foreground)", arrow: false, width: 1, label: "reinforces" },
+  "justified-by": { stroke: "var(--judged)", dash: "1 3", arrow: false, width: 1, label: "justified by" },
 };
 
 function nodeFill(status: GraphStatus) {
@@ -155,7 +155,7 @@ export default function RuleGraphSVG({ nodes, edges }: { nodes: GraphNode[]; edg
   if (nodes.length === 0) {
     return (
       <div className="flex h-[58vh] min-h-[380px] items-center justify-center rounded-[12px] border border-[var(--border)] bg-[var(--surface-feed)] text-sm text-[var(--muted-foreground)]">
-        Aucune règle à représenter pour ce contexte.
+        No rules to display for this context.
       </div>
     );
   }
@@ -194,16 +194,16 @@ export default function RuleGraphSVG({ nodes, edges }: { nodes: GraphNode[]; edg
             {EDGE_STYLE[t].label}
           </span>
         ))}
-        <span className="ml-auto">molette : zoom · glisser : déplacer</span>
+        <span className="ml-auto">scroll: zoom · drag: pan</span>
       </div>
 
       {/* canvas */}
       <div className="relative h-[58vh] min-h-[380px] overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-feed)]">
         {/* zoom controls */}
         <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
-          <CtrlBtn label="Zoom avant" onClick={() => { const c = center(); zoomAround(c.wx, c.wy, 1 / 1.25); }}>+</CtrlBtn>
-          <CtrlBtn label="Zoom arrière" onClick={() => { const c = center(); zoomAround(c.wx, c.wy, 1.25); }}>−</CtrlBtn>
-          <CtrlBtn label="Recadrer" onClick={() => setView(world)}>⤢</CtrlBtn>
+          <CtrlBtn label="Zoom in" onClick={() => { const c = center(); zoomAround(c.wx, c.wy, 1 / 1.25); }}>+</CtrlBtn>
+          <CtrlBtn label="Zoom out" onClick={() => { const c = center(); zoomAround(c.wx, c.wy, 1.25); }}>−</CtrlBtn>
+          <CtrlBtn label="Fit" onClick={() => setView(world)}>⤢</CtrlBtn>
         </div>
 
         <svg
@@ -213,7 +213,7 @@ export default function RuleGraphSVG({ nodes, edges }: { nodes: GraphNode[]; edg
           viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
           preserveAspectRatio="xMidYMid meet"
           role="img"
-          aria-label="Graphe de précédence des règles"
+          aria-label="Rule precedence graph"
           className="touch-none select-none"
           style={{ cursor: drag.current ? "grabbing" : "grab" }}
           onPointerDown={onPointerDown}

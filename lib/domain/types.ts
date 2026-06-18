@@ -145,6 +145,9 @@ export interface GenerationResult {
   report: Verdict[];
   attempts: number;
   allProvableGreen: boolean;
+  /** Non-verifiable rules (register/tone/structure) the LLM-judge marked as NOT met.
+   *  Separate from allProvableGreen — a confidence signal, never a deterministic proof. */
+  judgedFailures?: number;
   /** per-attempt failing rules — only the LLM paths fill this (verifyDraft does not). */
   history?: AttemptRecord[];
 }

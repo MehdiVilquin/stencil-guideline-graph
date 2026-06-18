@@ -35,15 +35,15 @@ export default function PinBoard({ active, relations }: { active: Rule[]; relati
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="text-[9px] uppercase tracking-wide text-[var(--muted-foreground)]">
-              <th className="py-2 pl-3 pr-2 font-medium">Règle</th>
+              <th className="py-2 pl-3 pr-2 font-medium">Rule</th>
               {SCOPE_DIMENSIONS.map((d) => (
                 <th key={d} className="px-1 text-center font-medium">
                   {DIM_ABBR[d]}
                 </th>
               ))}
-              <th className="px-2 font-medium">Force</th>
-              <th className="px-2 font-medium">Poids</th>
-              <th className="px-2 font-medium">Liée</th>
+              <th className="px-2 font-medium">Strength</th>
+              <th className="px-2 font-medium">Weight</th>
+              <th className="px-2 font-medium">Linked</th>
             </tr>
           </thead>
           <tbody>
@@ -78,13 +78,13 @@ export default function PinBoard({ active, relations }: { active: Rule[]; relati
                     </span>
                   </td>
                   <td className="px-2">
-                    <span className="flex gap-0.5" title={`Poids : ${spec} dimension(s) fixée(s) · ${str.label}`}>
+                    <span className="flex gap-0.5" title={`Weight: ${spec} fixed dimension(s) · ${str.label}`}>
                       {Array.from({ length: 6 }, (_, i) => (
                         <span key={i} className="h-2 w-[7px] rounded-[2px]" style={{ backgroundColor: i < spec ? str.shade : "var(--muted)" }} />
                       ))}
                     </span>
                   </td>
-                  <td className="px-2 font-mono text-[10px] text-[var(--muted-foreground)]" title={rel.length ? `Reliée à ${rel.map((i) => "#" + i).join(", ")}` : "Solo"}>
+                  <td className="px-2 font-mono text-[10px] text-[var(--muted-foreground)]" title={rel.length ? `Linked to ${rel.map((i) => "#" + i).join(", ")}` : "Solo"}>
                     {rel.length ? `↔ ${rel.map((i) => `#${i}`).join(" ")}` : "○"}
                   </td>
                 </tr>
@@ -95,11 +95,11 @@ export default function PinBoard({ active, relations }: { active: Rule[]; relati
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-[10px] text-[var(--muted-foreground)]">
         <span className="inline-flex items-center gap-1">
-          <Shield className="h-3 w-3 text-[var(--primary)]" /> socle (invariant)
+          <Shield className="h-3 w-3 text-[var(--primary)]" /> baseline (invariant)
         </span>
-        <span>● dimension de scope fixée · · wildcard</span>
-        <span>barre <b className="font-semibold text-[var(--foreground)]">Poids</b> = nb de dimensions fixées (spécificité)</span>
-        <span>↔ #x = reliée à #x · ○ = solo</span>
+        <span>● fixed scope dimension · · wildcard</span>
+        <span>bar <b className="font-semibold text-[var(--foreground)]">Weight</b> = number of fixed dimensions (specificity)</span>
+        <span>↔ #x = linked to #x · ○ = solo</span>
       </div>
     </div>
   );

@@ -22,7 +22,7 @@ export default function WeightLadder({ active, relations }: { active: Rule[]; re
         {TIERS.map((t) => (
           <Tier key={t.key} label={t.label} rules={tierRules(t.key)} relations={relations} />
         ))}
-        {socle.length > 0 && <Tier label="SOCLE" rules={socle} relations={relations} socle />}
+        {socle.length > 0 && <Tier label="BASELINE" rules={socle} relations={relations} socle />}
       </div>
       <Legend />
     </div>
@@ -76,16 +76,16 @@ function Chip({ rule, related, socle }: { rule: Rule; related: string[]; socle: 
       <span className="max-w-[120px] truncate text-[11px] font-medium text-[var(--foreground)]">{rule.name}</span>
       <span
         className="rounded-[5px] bg-[var(--muted)] px-1 py-0.5 text-[9px] font-medium text-[var(--muted-foreground)]"
-        title={`Spécificité : ${spec} dimension(s) de scope fixée(s)`}
+        title={`Specificity: ${spec} fixed scope dimension(s)`}
       >
         S{spec}
       </span>
       {related.length > 0 ? (
-        <span className="font-mono text-[10px] text-[var(--muted-foreground)]" title={`Reliée à ${related.map((i) => "#" + i).join(", ")}`}>
+        <span className="font-mono text-[10px] text-[var(--muted-foreground)]" title={`Linked to ${related.map((i) => "#" + i).join(", ")}`}>
           ↔ {related.map((i) => `#${i}`).join(" ")}
         </span>
       ) : (
-        <span className="text-[10px] text-[var(--muted-foreground)]" title="Solo — aucune relation">
+        <span className="text-[10px] text-[var(--muted-foreground)]" title="Solo — no relations">
           ○
         </span>
       )}
@@ -97,12 +97,12 @@ function Legend() {
   return (
     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-[10px] text-[var(--muted-foreground)]">
       <span className="inline-flex items-center gap-1">
-        <Shield className="h-3 w-3 text-[var(--primary)]" /> socle (invariant)
+        <Shield className="h-3 w-3 text-[var(--primary)]" /> baseline (invariant)
       </span>
       <span>
-        <b className="font-semibold text-[var(--foreground)]">S</b> = spécificité — nb de dimensions de scope fixées
+        <b className="font-semibold text-[var(--foreground)]">S</b> = specificity — number of fixed scope dimensions
       </span>
-      <span>↔ #x = reliée à la règle #x · ○ = solo (aucune relation)</span>
+      <span>↔ #x = linked to rule #x · ○ = solo (no relations)</span>
     </div>
   );
 }
