@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Semantic Guidelines Graph — Maison Lumière",
+  title: "Stencil — Guideline graph",
   description:
     "Conflict resolution moved out of the LLM into a deterministic precedence engine over a typed rule graph. Glass-box, provable.",
 };
