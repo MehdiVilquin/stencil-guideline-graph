@@ -131,6 +131,12 @@ export interface Verdict {
   pass: boolean;
   verifiable: boolean; // false → judged, not proven (register/tone)
   evidence: string;
+  /** Exact offending substrings in the copy → spell-checker style inline highlights.
+   *  Only set for deterministic, token-localizable violations (never for tone). */
+  marks?: string[];
+  /** A prescribed one-click replacement for the offending term, when the rule carries one
+   *  (e.g. lexical-forbidden "never X, use Y" → fix = "Y"). "" means "remove it". */
+  fix?: string;
 }
 
 /** One iteration of the generate→verify→repair loop (for the glass-box trace). */

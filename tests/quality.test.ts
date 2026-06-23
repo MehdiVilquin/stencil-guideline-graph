@@ -70,13 +70,13 @@ describe('mechanicalFix — exclamation', () => {
 describe('mechanicalFix — bullet over-count', () => {
   const bullets = rule('30'); // Bullet lists contain 3 to 5 items
 
-  it('caps an over-long list to the max', () => {
+  it('caps an over-long list to the max and normalizes markers to "- "', () => {
     const six = '• a\n• b\n• c\n• d\n• e\n• f';
-    expect(mechanicalFix(six, [bullets])).toBe('• a\n• b\n• c\n• d\n• e');
+    expect(mechanicalFix(six, [bullets])).toBe('- a\n- b\n- c\n- d\n- e');
   });
 
-  it('leaves an under-count list untouched (cannot fabricate items)', () => {
-    expect(mechanicalFix('• a\n• b', [bullets])).toBe('• a\n• b');
+  it('keeps an under-count list as-is (cannot fabricate items), markers normalized', () => {
+    expect(mechanicalFix('• a\n• b', [bullets])).toBe('- a\n- b');
   });
 
   it('does nothing without a bullet rule active', () => {

@@ -112,7 +112,7 @@ function repairPrompt(prevCopy: string, failing: Verdict[]): string {
       const extra = m
         ? ` → RÉDUIS à ${Math.max(20, Number(m[2]) - 10)} caractères ou moins (actuellement ${m[1]}), en TERMINANT par une phrase complète — ne coupe pas un mot`
         : b
-          ? ` → produis EXACTEMENT ${b[1]} à ${b[2]} puces, une par ligne, sans point final`
+          ? ` → produis EXACTEMENT ${b[1]} à ${b[2]} puces, une par ligne, chacune préfixée par « - », sans point final`
           : '';
       return `- règle #${v.localId} (${v.ruleName}) : ${v.evidence}${extra}`;
     })
@@ -147,13 +147,27 @@ export function mechanicalFix(copy: string, active: Rule[]): string {
     }
   }
 
-  // Bullet OVER-count: if a bullet/item rule caps the list, keep the first N
-  // non-empty lines. (Under-count is left to the LLM — we don't fabricate items.)
+  // Bullet format: cap over-count, then normalize each non-empty line to "- <item>"
+  // with no terminal period — the deterministic shape rule #30 asks for. (Under-count
+  // is left to the LLM — we don't fabricate items.)
   const bulletRule = active.find((r) => r.constraintType === 'length-bound' && /item|bullet/i.test(r.text));
   if (bulletRule) {
     const max = numericBound(bulletRule);
-    const lines = copy.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-    if (max != null && lines.length > max) copy = lines.slice(0, max).join('\n');
+    let lines = copy.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    if (max != null && lines.length > max) lines = lines.slice(0, max);
+    lines = lines.map((l) => {
+      const body = l.replace(/^([-–•*]|\d+[.)])\s*/, '').replace(/\s*[.。]+\s*$/, '').trim();
+      return `- ${body}`;
+    });
+    copy = lines.join('\n');
+  }
+
+  // Currency (fr "after the amount"): comma decimal + non-breaking space before €.
+  const cur = active.find((r) => r.subject === 'currency');
+  if (cur && directiveSignature(cur) === 'currency:after') {
+    copy = copy
+      .replace(/(\d+)[.,](\d{2})\s*€/g, '$1,$2 €')
+      .replace(/(\d+)\s*€/g, '$1 €');
   }
 
   return copy.replace(/[ \t]+\n/g, '\n').trim();

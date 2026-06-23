@@ -50,8 +50,25 @@ const SPACES = [
     ),
   },
   {
-    href: "/prototype",
+    href: "/salesbook",
     label: "02",
+    title: "Salesbook",
+    sub: "Client presentation",
+    desc: "Built for buyers, not investors. The pain you live, what it costs, and what changes when brand rules enforce themselves. By the end, you want it.",
+    accent: "oklch(0.52 0.2 295)",
+    accentBg: "oklch(0.52 0.2 295 / 0.07)",
+    accentBorder: "oklch(0.52 0.2 295 / 0.2)",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
+        <rect x="4" y="5" width="20" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M14 19v4M10 23h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <path d="M14 8.4l1.25 2.55 2.75.4-2 1.85.47 2.6-2.47-1.3-2.47 1.3.47-2.6-2-1.85 2.75-.4z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/prototype",
+    label: "03",
     title: "Prototype",
     sub: "Stencil — rule engine",
     desc: "Live, client-side. Import a guidelines file, resolve conflicts with the precedence engine, generate brand-compliant copy, inspect every decision.",
@@ -71,7 +88,7 @@ const SPACES = [
   },
   {
     href: "/docs",
-    label: "03",
+    label: "04",
     title: "Documentation",
     sub: "Model · algorithm · stack",
     desc: "How the rule graph works internally. The parse pipeline, the precedence engine, the constraint types, the API surface, and all the decisions behind them.",

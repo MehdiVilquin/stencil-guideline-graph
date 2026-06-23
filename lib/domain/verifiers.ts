@@ -90,7 +90,12 @@ function present(copy: string, term: string): boolean {
   return new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, 'iu').test(copy);
 }
 
-function v(rule: Rule, pass: boolean, verifiable: boolean, evidence: string): Verdict {
+/** First prescribed replacement token of a rule ("…use X instead"), if any. */
+function firstReplacement(rule: Rule): string | undefined {
+  return [...replacementTokens(rule.text)][0];
+}
+
+function v(rule: Rule, pass: boolean, verifiable: boolean, evidence: string, marks?: string[], fix?: string): Verdict {
   return {
     localId: rule.localId,
     ruleName: rule.name,
@@ -98,6 +103,8 @@ function v(rule: Rule, pass: boolean, verifiable: boolean, evidence: string): Ve
     pass,
     verifiable,
     evidence,
+    ...(marks && marks.length ? { marks } : {}),
+    ...(fix !== undefined ? { fix } : {}),
   };
 }
 
@@ -109,13 +116,13 @@ export function verify(copy: string, rule: Rule): Verdict {
       if (rule.subject === 'medical-claims') {
         const hit = MEDICAL_CLAIM_TERMS.find((t) => containsClaim(copy, t));
         return hit
-          ? v(rule, false, true, `allégation médicale présente : « ${hit} »`)
+          ? v(rule, false, true, `allégation médicale présente : « ${hit} »`, [hit])
           : v(rule, true, true, 'aucune allégation médicale (multilingue)');
       }
       const terms = forbiddenTerms(rule);
       const hit = terms.find((t) => present(copy, t));
       return hit
-        ? v(rule, false, true, `terme interdit présent : « ${hit} »`)
+        ? v(rule, false, true, `terme interdit présent : « ${hit} »`, [hit], firstReplacement(rule))
         : v(rule, true, true, `aucun terme interdit (${terms.join(', ') || '∅'})`);
     }
 
@@ -126,7 +133,7 @@ export function verify(copy: string, rule: Rule): Verdict {
       const required = quotedTokens(rule.text)[0];
       const variants = forbiddenVariants(rule.text).filter((t) => t !== required);
       const badVariant = variants.find((t) => present(copy, t));
-      if (badVariant) return v(rule, false, true, `forme incorrecte présente : « ${badVariant} »`);
+      if (badVariant) return v(rule, false, true, `forme incorrecte présente : « ${badVariant} »`, [badVariant], required);
       if (required && present(copy, required))
         return v(rule, true, true, `forme canonique respectée : « ${required} »`);
       return v(rule, true, true, 'aucune forme incorrecte détectée');
@@ -137,10 +144,15 @@ export function verify(copy: string, rule: Rule): Verdict {
       if (bound == null) return v(rule, true, false, 'borne non parsée — jugé');
       // item-count rules (bullets) → count lines; else character count
       if (/item|bullet/i.test(rule.text)) {
-        const items = copy.split(/\n+/).map((l) => l.trim()).filter(Boolean).length;
+        const lines = copy.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+        const items = lines.length;
         const min = (rule.text.match(/(\d+)\s*to\s*\d+/) || [])[1];
-        const ok = items <= bound && (min ? items >= Number(min) : true);
-        return v(rule, ok, true, `${items} éléments (borne ${min ?? '?'}–${bound})`);
+        if (!(items <= bound && (min ? items >= Number(min) : true)))
+          return v(rule, false, true, `${items} éléments (borne ${min ?? '?'}–${bound})`);
+        // "each bullet is one line with no terminal period" — enforce the period clause too.
+        const withPeriod = lines.find((l) => /[.。]$/.test(l));
+        if (withPeriod) return v(rule, false, true, `puce avec point final : « ${withPeriod} »`);
+        return v(rule, true, true, `${items} puces · sans point final`);
       }
       const len = copy.length;
       return v(rule, len <= bound, true, `${len}/${bound} caractères`);
@@ -151,31 +163,66 @@ export function verify(copy: string, rule: Rule): Verdict {
       const exclaims = (copy.match(/!/g) || []).length;
       if (rule.subject === 'exclamation-mark') {
         if (sig === 'exclaim:forbid')
-          return v(rule, exclaims === 0, true, `${exclaims} point(s) d'exclamation (0 autorisé)`);
+          return exclaims === 0
+            ? v(rule, true, true, `0 point(s) d'exclamation (0 autorisé)`)
+            : v(rule, false, true, `${exclaims} point(s) d'exclamation (0 autorisé)`, ['!'], '');
         if (sig === 'exclaim:allow-one')
-          return v(rule, exclaims <= 1, true, `${exclaims} point(s) d'exclamation (≤1 autorisé)`);
+          return v(rule, exclaims <= 1, true, `${exclaims} point(s) d'exclamation (≤1 autorisé)`, exclaims > 1 ? ['!'] : undefined);
       }
       if (rule.subject === 'currency') {
         const before = /€\s?\d/.test(copy);
         const after = /\d\s?(€|eur)/i.test(copy);
         if (!before && !after) return v(rule, true, true, 'aucun prix dans la copie (n/a)');
-        if (sig === 'currency:after')
-          return v(rule, after && !before, true, after && !before ? 'symbole après le montant' : 'symbole avant le montant — attendu après');
+        const priceBefore = copy.match(/€\s?\d[\d.,]*/)?.[0];
+        const priceAfter = copy.match(/\d[\d.,]*\s?(?:€|eur)/i)?.[0];
+        if (sig === 'currency:after') {
+          // Dot decimals (99.00) violate the fr comma-decimal convention even when placement is right.
+          const dotPrice = copy.match(/\d+\.\d{2}\s*€/)?.[0] ?? copy.match(/€\s?\d+\.\d{2}/)?.[0];
+          if (after && !before && dotPrice)
+            return v(rule, false, true, 'décimale point — virgule attendue', [dotPrice]);
+          return after && !before
+            ? v(rule, true, true, 'symbole après le montant')
+            : v(rule, false, true, 'symbole avant le montant — attendu après', priceBefore ? [priceBefore] : undefined);
+        }
         if (sig === 'currency:before')
-          return v(rule, before && !after, true, before ? 'symbole avant le montant' : 'symbole après — attendu avant');
+          return before && !after
+            ? v(rule, true, true, 'symbole avant le montant')
+            : v(rule, false, true, 'symbole après — attendu avant', priceAfter ? [priceAfter] : undefined);
       }
       if (rule.subject === 'quotes') {
-        const straight = /"[^"]+"/.test(copy);
+        const straight = copy.match(/"[^"]+"/)?.[0];
         if (sig === 'quotes:typographic')
-          return v(rule, !straight, true, straight ? 'guillemets droits détectés' : 'guillemets typographiques');
+          return straight
+            ? v(rule, false, true, 'guillemets droits détectés', [straight])
+            : v(rule, true, true, 'guillemets typographiques');
         if (sig === 'quotes:guillemets')
-          return v(rule, /«[^»]+»/.test(copy) || !straight, true, 'guillemets « » attendus');
+          return v(rule, /«[^»]+»/.test(copy) || !straight, true, 'guillemets « » attendus', straight ? [straight] : undefined);
       }
       if (rule.subject === 'units') {
         const bad = /\d(ml|g|kg|cl)\b/i.test(copy); // missing space
         return v(rule, !bad, true, bad ? 'espace manquant avant l’unité' : 'unités correctes');
       }
-      // other format channels (case, punctuation, date, trademark): best-effort → judged
+      if (rule.subject === 'date-format') {
+        // Numeric slash dates only. A date PROVES its ordering when one field is
+        // out of the month range: 1st field > 12 ⇒ day-first (JJ/MM); 2nd field > 12
+        // ⇒ month-first (MM/JJ). When both fields are ≤ 12 the date is genuinely
+        // ambiguous → we stay honest and leave it to the judge. (This is exactly
+        // where deterministic beats the LLM: "31/05/2024" can only be JJ/MM.)
+        const dates = [...copy.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/g)];
+        if (!dates.length) return v(rule, true, true, 'aucune date numérique (n/a)');
+        const wantsMDY = /mm\/dd/i.test(rule.text); // explicit US ordering, else default JJ/MM
+        const dayFirst = dates.find((m) => Number(m[1]) > 12);
+        const monthFirst = dates.find((m) => Number(m[2]) > 12 && Number(m[1]) <= 12);
+        if (wantsMDY) {
+          if (dayFirst) return v(rule, false, true, `date au format JJ/MM : ${dayFirst[0]} (attendu MM/JJ)`, [dayFirst[0]]);
+          if (monthFirst) return v(rule, true, true, `date au format MM/JJ/AAAA : ${monthFirst[0]}`);
+        } else {
+          if (monthFirst) return v(rule, false, true, `date au format MM/JJ/AAAA : ${monthFirst[0]} (attendu JJ/MM/AAAA)`, [monthFirst[0]]);
+          if (dayFirst) return v(rule, true, true, `date au format JJ/MM/AAAA : ${dayFirst[0]}`);
+        }
+        return v(rule, true, false, 'date ambiguë (jj/mm vs mm/jj) — jugé');
+      }
+      // other format channels (case, punctuation, trademark): best-effort → judged
       return v(rule, true, false, 'format non mécanisé ici — jugé');
     }
 
@@ -221,13 +268,14 @@ export function franglaisApplies(locale: string): boolean {
 /** Flag English replacement terms / markers appearing verbatim in non-English
  *  copy — EXCEPT the brand and required canonical forms. Rule-grounded + precise. */
 export function verifyForeignTerms(copy: string, rules: Rule[], brand: string): Verdict {
-  const mk = (pass: boolean, evidence: string): Verdict => ({
+  const mk = (pass: boolean, evidence: string, marks?: string[]): Verdict => ({
     localId: 'franglais',
     ruleName: 'Pas de franglais',
     constraintType: 'lexical-forbidden',
     pass,
     verifiable: true,
     evidence,
+    ...(marks && marks.length ? { marks } : {}),
   });
 
   const suspects = new Set<string>(EN_FRANGLAIS_MARKERS);
@@ -242,7 +290,7 @@ export function verifyForeignTerms(copy: string, rules: Rule[], brand: string): 
 
   const hits = [...suspects].filter((t) => !allow.has(lc(t)) && present(copy, t));
   return hits.length
-    ? mk(false, `mot(s) anglais à traduire : ${hits.map((h) => `« ${h} »`).join(', ')}`)
+    ? mk(false, `mot(s) anglais à traduire : ${hits.map((h) => `« ${h} »`).join(', ')}`, hits)
     : mk(true, 'aucun mot anglais hors marque / termes imposés');
 }
 

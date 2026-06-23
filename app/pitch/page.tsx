@@ -80,7 +80,7 @@ type Visual = "hook" | "soup" | "probpred" | "solution" | "pipeline" | "lattice"
 
 interface Col { label: string; desc: string }
 interface Row { tool: string; trait: string; highlight?: boolean }
-interface Num { value: string; label: string }
+interface Num { value: string; label: string; src?: { label: string; href: string }[] }
 interface Road { q: string; label: string; desc: string }
 
 interface Tech { op: string; detail: string }
@@ -243,33 +243,57 @@ const SLIDES: Slide[] = [
       ],
       quote: "Pas un outil de copywriting. Un moteur de conformité." } },
   { id: "market", type: "business", layout: "stats",
-    en: { tag: "Market size", title: "$6B and growing.",
-      body: "Brand-content software and AI writing tools are converging. The enforcement layer is the overlap — and no one owns it.",
+    en: { tag: "Market size", title: "$80B, and no enforcement layer.",
+      body: "Generative-AI content and brand-management software are converging. 95% of companies have brand guidelines — only 25% enforce them. That gap is the market, and no tool owns it.",
       nums: [
-        { value: "$4.5B", label: "Brand content software (+18%/yr)" },
-        { value: "$2B", label: "AI content generation (+35%/yr)" },
-        { value: "$800M", label: "Addressable: regulated & multi-market" },
+        { value: "$80B", label: "Generative-AI content by 2030 (+32.5%/yr)",
+          src: [
+            { label: "Grand View", href: "https://www.grandviewresearch.com/industry-analysis/generative-ai-content-creation-market-report" },
+            { label: "Precedence", href: "https://www.precedenceresearch.com/generative-ai-in-content-creation-market" },
+          ] },
+        { value: "$12B", label: "Brand management software by 2034 (+14.2%/yr)",
+          src: [
+            { label: "Growth Mkt Reports", href: "https://growthmarketreports.com/report/brand-management-software-market" },
+            { label: "Verified Mkt", href: "https://www.verifiedmarketreports.com/product/brand-management-software-market/" },
+          ] },
+        { value: "+33%", label: "Revenue lift from brand consistency",
+          src: [
+            { label: "Lucidpress", href: "https://www.prnewswire.com/news-releases/study-finds-companies-with-consistent-branding-can-see-up-to-33-increase-in-revenue-300967219.html" },
+            { label: "Marq", href: "https://www.marq.com/blog/brand-consistency-competitive-advantage/" },
+          ] },
       ] },
-    fr: { tag: "Taille de marché", title: "6 Md$ et en croissance.",
-      body: "Les logiciels brand content et les outils de génération IA convergent. La couche d'enforcement est l'overlap — et personne ne la possède.",
+    fr: { tag: "Taille de marché", title: "80 Md$, et aucune couche d'enforcement.",
+      body: "L'IA générative de contenu et les logiciels de brand management convergent. 95% des entreprises ont des guidelines — 25% seulement les appliquent. Ce gap, c'est le marché, et aucun outil ne le possède.",
       nums: [
-        { value: "4,5 Md$", label: "Logiciels brand content (+18%/an)" },
-        { value: "2 Md$", label: "Génération IA (+35%/an)" },
-        { value: "800 M$", label: "Adressable : réglementé & multi-marchés" },
+        { value: "80 Md$", label: "Contenu IA générative d'ici 2030 (+32,5 %/an)",
+          src: [
+            { label: "Grand View", href: "https://www.grandviewresearch.com/industry-analysis/generative-ai-content-creation-market-report" },
+            { label: "Precedence", href: "https://www.precedenceresearch.com/generative-ai-in-content-creation-market" },
+          ] },
+        { value: "12 Md$", label: "Brand management software d'ici 2034 (+14,2 %/an)",
+          src: [
+            { label: "Growth Mkt Reports", href: "https://growthmarketreports.com/report/brand-management-software-market" },
+            { label: "Verified Mkt", href: "https://www.verifiedmarketreports.com/product/brand-management-software-market/" },
+          ] },
+        { value: "+33 %", label: "Revenus liés à la cohérence de marque",
+          src: [
+            { label: "Lucidpress", href: "https://www.prnewswire.com/news-releases/study-finds-companies-with-consistent-branding-can-see-up-to-33-increase-in-revenue-300967219.html" },
+            { label: "Marq", href: "https://www.marq.com/blog/brand-consistency-competitive-advantage/" },
+          ] },
       ] } },
   { id: "pricing", type: "business", layout: "visual-top",
-    en: { tag: "Pricing & margin", title: "Per-brand SaaS + usage API.",
+    en: { tag: "Pricing", title: "Priced to find fit.",
       cols: [
-        { label: "Subscription", desc: "€300–800/month per brand — rule volume & team size" },
+        { label: "Beta subscription", desc: "€49–149/month per brand — design-partner pricing" },
         { label: "API usage", desc: "Pay-as-you-go above quota — billed per generation call" },
       ],
-      quote: "Serverless → near-zero fixed cost. High margins from the first subscriber." },
-    fr: { tag: "Modèle économique", title: "SaaS par marque + API à l'usage.",
+      quote: "These numbers are hypotheses. A paid beta with design partners measures real willingness-to-pay before we set pricing." },
+    fr: { tag: "Modèle économique", title: "Un prix pour trouver le fit.",
       cols: [
-        { label: "Abonnement", desc: "€300–800/mois par marque — volume de règles & taille d'équipe" },
+        { label: "Abonnement beta", desc: "49–149 €/mois par marque — tarif design-partner" },
         { label: "Usage API", desc: "Pay-as-you-go au-delà du quota — facturation à l'appel" },
       ],
-      quote: "Serverless → coût fixe quasi nul. Marges élevées dès le premier abonné." } },
+      quote: "Ces chiffres sont des hypothèses. Une beta payante avec des design partners mesure la willingness-to-pay réelle avant de fixer le prix." } },
   { id: "roadmap", type: "roadmap", layout: "visual-top",
     en: { tag: "Roadmap", title: "What's next.",
       roadmap: [
@@ -444,9 +468,19 @@ function SlideView({ slide, content, lang, onCta }: {
         <SlideHeader content={content} tier={tier} accent={accent} align="center" />
         <div className="flex w-full max-w-[820px] flex-wrap justify-center gap-4">
           {content.nums?.map((num) => (
-            <div key={num.value} className="min-w-[200px] flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] px-6 py-6 text-center">
+            <div key={num.value} className="flex min-w-[200px] flex-1 flex-col rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] px-6 py-6 text-center">
               <p className="d-stat text-[var(--primary)]">{num.value}</p>
               <p className="d-body mt-3 text-[var(--muted-foreground)]">{num.label}</p>
+              {num.src && (
+                <div className="mt-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-3">
+                  {num.src.map((s) => (
+                    <a key={s.href} href={s.href} target="_blank" rel="noopener noreferrer"
+                      className="d-mono text-[10px] text-[var(--muted-foreground)] underline decoration-dotted underline-offset-2 transition hover:text-[var(--primary)]">
+                      {s.label} ↗
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

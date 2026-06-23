@@ -1,15 +1,20 @@
 import { useEffect, useRef } from "react";
 import type { Turn } from "./types";
 import TurnCard from "./TurnCard";
+import DraftReview from "./DraftReview";
 
 export default function Feed({
   turns,
   selectedId,
   onSelect,
+  onRule,
+  onApplyFix,
 }: {
   turns: Turn[];
   selectedId: number | null;
   onSelect: (id: number) => void;
+  onRule: (localId: string) => void;
+  onApplyFix: (term: string, fix: string) => void;
 }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -31,9 +36,13 @@ export default function Feed({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-4">
-      {turns.map((t) => (
-        <TurnCard key={t.id} turn={t} selected={t.id === selectedId} onSelect={() => onSelect(t.id)} />
-      ))}
+      {turns.map((t) =>
+        t.id === selectedId ? (
+          <DraftReview key={t.id} turn={t} onRule={onRule} onApplyFix={onApplyFix} />
+        ) : (
+          <TurnCard key={t.id} turn={t} selected={false} onSelect={() => onSelect(t.id)} />
+        ),
+      )}
       <div ref={end} />
     </div>
   );

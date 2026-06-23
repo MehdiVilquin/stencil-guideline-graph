@@ -83,8 +83,8 @@ export default function Generation() {
         </P>
         <P>
           The judge returns <C>{`{ pass: bool, reason: string }`}</C> per non-verifiable rule. Its
-          verdicts are shown as <strong>&quot;Judged — met&quot;</strong> or{" "}
-          <strong>&quot;Judged — not met&quot;</strong> in the inspector, clearly distinct from the
+          verdicts are shown as <strong>&quot;AI-judged · looks OK&quot;</strong> or{" "}
+          <strong>&quot;AI-judged · needs review&quot;</strong> in the inspector, clearly distinct from the
           deterministic &quot;Proven&quot; bucket. They never touch <C>allProvableGreen</C>.
         </P>
         <Analogy label="A laboratory">

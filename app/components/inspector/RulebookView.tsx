@@ -31,44 +31,53 @@ export default function RulebookView({
       <ProofScore report={report} />
 
       {violations.length > 0 && (
-        <Group icon={<Cross className="h-3.5 w-3.5 text-[var(--destructive)]" />} title="Violations" sub="to fix" count={`${violations.length}`} countColor="var(--destructive)">
+        <Accordion
+          icon={<Cross className="h-3.5 w-3.5 text-[var(--destructive)]" />}
+          title="Violations"
+          sub="to fix"
+          count={`${violations.length}`}
+          countColor="var(--destructive)"
+          defaultOpen
+        >
           {violations.map((v) => (
             <RuleRow key={v.localId} v={v} onRule={onRule} />
           ))}
-        </Group>
+        </Accordion>
       )}
 
-      <Group
+      <Accordion
         icon={<Check className="h-3.5 w-3.5 text-[var(--ok)]" />}
         title="Proven"
         sub="deterministic"
         count={`${proven.length}/${proven.length + violations.length}`}
         countColor="var(--ok)"
+        defaultOpen
       >
         {proven.map((v) => (
           <RuleRow key={v.localId} v={v} onRule={onRule} />
         ))}
-      </Group>
+      </Accordion>
 
       {judgedFail.length > 0 && (
-        <Group
+        <Accordion
           icon={<HalfCircle className="h-3.5 w-3.5 text-[var(--judged)]" />}
-          title="Judged — not met"
-          sub="LLM-judged, not proven"
+          title="AI-judged · needs review"
+          sub="opinion, not proof"
           count={`${judgedFail.length}`}
           countColor="var(--judged)"
+          defaultOpen
         >
           {judgedFail.map((v) => (
             <RuleRow key={v.localId} v={v} onRule={onRule} />
           ))}
-        </Group>
+        </Accordion>
       )}
 
       {judgedPass.length > 0 && (
         <Accordion
           icon={<HalfCircle className="h-3.5 w-3.5 text-[var(--judged)]" />}
-          title="Judged — met"
-          sub="LLM-judged, not proven"
+          title="AI-judged · looks OK"
+          sub="opinion, not proof"
           count={`${judgedPass.length}`}
           countColor="var(--judged)"
         >
@@ -140,9 +149,9 @@ function ProofScore({ report }: { report: Verdict[] }) {
             </span>{" "}
             proven
           </span>
-          <span className="text-[14px] text-[var(--muted-foreground)]"> · {judged} judged</span>
+          <span className="text-[14px] text-[var(--muted-foreground)]"> · {judged} AI-judged</span>
           {judgedFail > 0 && (
-            <span className="text-[14px] font-medium text-[var(--judged)]"> ({judgedFail} unmet)</span>
+            <span className="text-[14px] font-medium text-[var(--judged)]"> ({judgedFail} to review)</span>
           )}
         </div>
         <span className="text-[12px] tabular-nums text-[var(--muted-foreground)]">{report.length} rules</span>
@@ -233,37 +242,13 @@ function GroupHeader({
   );
 }
 
-function Group({
-  icon,
-  title,
-  sub,
-  count,
-  countColor,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
-  count: string;
-  countColor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="pb-1.5">
-        <GroupHeader icon={icon} title={title} sub={sub} count={count} countColor={countColor} />
-      </div>
-      <div>{children}</div>
-    </section>
-  );
-}
-
 function Accordion({
   icon,
   title,
   sub,
   count,
   countColor,
+  defaultOpen,
   children,
 }: {
   icon: React.ReactNode;
@@ -271,9 +256,10 @@ function Accordion({
   sub: string;
   count: string;
   countColor: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   return (
     <section className="rounded-[12px] border border-[var(--border)] bg-[var(--card)]">
       <button

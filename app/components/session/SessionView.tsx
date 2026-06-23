@@ -20,6 +20,7 @@ import {
   ctxLabel,
 } from "../types";
 import { proofStats } from "@/lib/ui/proof";
+import { applyOneFix } from "@/lib/ui/marks";
 import Feed from "../Feed";
 import Composer from "../Composer";
 import ContextBar from "../ContextBar";
@@ -153,11 +154,11 @@ export default function SessionView({
   };
 
   const setDim = (k: keyof GenerationContext, v: string) => {
-    setCtx((c) => {
-      const next = { ...c, [k]: v };
-      onUpdateSession({ ctx: next });
-      return next;
-    });
+    // Run as a side effect of the click handler — NOT inside the setCtx updater,
+    // which executes during render (setState-in-render → React warning).
+    const next = { ...ctx, [k]: v };
+    setCtx(next);
+    onUpdateSession({ ctx: next });
   };
 
   const openTurn = (id: number) => {
@@ -177,7 +178,16 @@ export default function SessionView({
       <section className="flex min-h-[70vh] flex-col overflow-hidden bg-[var(--surface-feed)] lg:min-h-0">
         <SessionHead model={model} session={session} />
         <div className="mx-auto flex min-h-0 w-full max-w-[840px] flex-1 flex-col">
-          <Feed turns={turns} selectedId={selectedTurn?.id ?? null} onSelect={openTurn} />
+          <Feed
+            turns={turns}
+            selectedId={selectedTurn?.id ?? null}
+            onSelect={openTurn}
+            onRule={goToRule}
+            onApplyFix={(term, fix) => {
+              setText((cur) => applyOneFix(cur, term, fix));
+              setMode("rewrite");
+            }}
+          />
         </div>
         <div className="mx-auto w-full max-w-[840px] shrink-0 px-3 pt-2">
           <ContextBar ctx={ctx} facets={facets} onDim={setDim} />
