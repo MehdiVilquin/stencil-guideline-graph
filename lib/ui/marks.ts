@@ -21,11 +21,27 @@ export function draftReport(input: string, active: Rule[], ctx: GenerationContex
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Apply one prescribed fix to a text (all case-insensitive occurrences). "" = remove
- *  the term and tidy the leftover spacing/punctuation. Operates on the LIVE editor text
- *  so repeated applies compose. */
+/** Mirror the matched term's case onto the replacement: ALLCAPS → upper, Capitalized →
+ *  capitalized, otherwise verbatim. Keeps "Best price" → "Meilleur price", not "meilleur". */
+function matchCase(matched: string, repl: string): string {
+  if (!repl) return repl;
+  if (matched === matched.toUpperCase() && matched !== matched.toLowerCase()) return repl.toUpperCase();
+  if (matched[0] === matched[0].toUpperCase() && matched[0] !== matched[0].toLowerCase())
+    return repl[0].toUpperCase() + repl.slice(1);
+  return repl;
+}
+
+/** Apply one prescribed fix to a text — only at WORD BOUNDARIES (the same matching the
+ *  verifier's `present()` uses, so we never corrupt a larger word, e.g. "pro" inside
+ *  "professionnel"), case-preserving, and treating `fix` LITERALLY (a function replacer,
+ *  so a "$" in the replacement is not read as a $-pattern). "" = remove the term and tidy
+ *  the leftover spacing/punctuation. Operates on the LIVE editor text so repeated applies
+ *  compose. */
 export function applyOneFix(text: string, term: string, fix: string): string {
-  const out = text.replace(new RegExp(escapeRe(term), "gi"), fix);
+  if (!term) return text;
+  // (^|non-letter) consumed before; (non-letter|end) lookahead after so adjacent hits still match.
+  const re = new RegExp(`(^|[^\\p{L}])(${escapeRe(term)})(?=[^\\p{L}]|$)`, "giu");
+  const out = text.replace(re, (_m, pre: string, hit: string) => pre + matchCase(hit, fix));
   return fix === "" ? out.replace(/\s{2,}/g, " ").replace(/\s+([.,;!?])/g, "$1").trim() : out;
 }
 

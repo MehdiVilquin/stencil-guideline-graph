@@ -22,7 +22,9 @@ export default function DraftReview({
     return { marks: marksFromReport(report), listed: unmarkedViolations(report) };
   }, [turn]);
 
-  const fixes = marks.filter((m) => m.fix !== undefined);
+  const fixes = marks
+    .filter((m) => m.fix !== undefined)
+    .filter((m, i, a) => a.findIndex((x) => x.term.toLowerCase() === m.term.toLowerCase()) === i);
   const total = marks.length + listed.length;
 
   return (
@@ -119,17 +121,24 @@ function HighlightedDraft({
   }
 
   const terms = [...new Set(marks.map((m) => m.term))].filter(Boolean).sort((a, b) => b.length - a.length);
-  const re = new RegExp(`(${terms.map(escapeRe).join("|")})`, "gi");
+  if (!terms.length) {
+    return <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--foreground)]">{text}</p>;
+  }
+  // Word-boundary highlight (same shape as the verifier's `present()`): a leading
+  // non-letter is captured & re-emitted as plain text, the trailing one is a lookahead —
+  // so "gratuit" never squiggles inside "gratuitement", and adjacent hits still match.
+  const re = new RegExp(`(^|[^\\p{L}])(${terms.map(escapeRe).join("|")})(?=[^\\p{L}]|$)`, "giu");
 
   const nodes: ReactNode[] = [];
   let last = 0;
   let key = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
-    if (m.index > last) nodes.push(text.slice(last, m.index));
-    const matched = m[0];
+    const matched = m[2];
+    const start = m.index + m[1].length; // skip the leading boundary char
+    if (start > last) nodes.push(text.slice(last, start));
     const ml = matched.toLowerCase();
-    const mk = marks.find((x) => x.term.toLowerCase() === ml) ?? marks.find((x) => ml.includes(x.term.toLowerCase()));
+    const mk = marks.find((x) => x.term.toLowerCase() === ml);
     nodes.push(
       <button
         key={`mk-${key++}`}
@@ -141,7 +150,7 @@ function HighlightedDraft({
         {matched}
       </button>,
     );
-    last = m.index + matched.length;
+    last = start + matched.length;
     if (re.lastIndex === m.index) re.lastIndex++;
   }
   if (last < text.length) nodes.push(text.slice(last));
